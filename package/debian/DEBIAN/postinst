@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]
+then
+  groupadd -r thingsplex || true
+  groupadd -r sonos || true
+
+  useradd -r -N -M -d / -s /bin/false -g thingsplex sonos || true
+
+  chown -R sonos:thingsplex /var/log/thingsplex/sonos/ || true
+  chown -R sonos:sonos /opt/thingsplex/sonos/ || true
+fi
+
+deb-systemd-helper unmask sonos.service >/dev/null || true
+
+if deb-systemd-helper --quiet was-enabled sonos.service; then
+  systemctl enable sonos.service || true
+else
+  deb-systemd-helper update-state sonos.service >/dev/null || true
+fi
+
+if [ -d /run/systemd/system ]; then
+  systemctl --system daemon-reload >/dev/null || true
+
+  if [ -n "$2" ]; then
+    deb-systemd-invoke try-restart sonos.service >/dev/null || true
+  else
+    deb-systemd-invoke start sonos.service >/dev/null || true
+  fi
+fi
