@@ -75,6 +75,8 @@ func (c *Client) GetPlayersAndGroups(accessToken string, HouseholdID string) (*C
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
 	resp, err := http.DefaultClient.Do(req)
+	log.Debug(resp)
+	return nil, nil
 }
 
 func processHTTPResponse(resp *http.Response, err error, holder interface{}) error {

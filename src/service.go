@@ -44,15 +44,25 @@ func main() {
 	fimpRouter := router.NewFromFimpRouter(mqtt, appLifecycle, configs)
 	fimpRouter.Start()
 
+	appLifecycle.SetConnectionState(model.ConnStateDisconnected)
+	if configs.IsConfigured() && err == nil {
+		appLifecycle.SetConfigState(model.ConfigStateConfigured)
+		appLifecycle.SetAppState(model.AppStateRunning, nil)
+		appLifecycle.SetConnectionState(model.ConnStateConnected)
+	} else {
+		appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
+		appLifecycle.SetAppState(model.AppStateNotConfigured, nil)
+		appLifecycle.SetConnectionState(model.ConnStateDisconnected)
+	}
+
+	if configs.IsAuthenticated() && err == nil {
+		appLifecycle.SetAuthState(model.AuthStateAuthenticated)
+	} else {
+		appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
+	}
+
 	for {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
-		// Configure custom resources here
-		//if err := conFimpRouter.Start(); err !=nil {
-		//	appLifecycle.PublishEvent(model.EventConfigError,"main",nil)
-		//}else {
-		//	appLifecycle.WaitForState(model.StateConfiguring,"main")
-		//}
-		//TODO: Add logic here
 		appLifecycle.WaitForState(model.AppStateNotConfigured, "main")
 	}
 

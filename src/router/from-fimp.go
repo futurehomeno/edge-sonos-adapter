@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/thingsplex/sonos/handler"
+
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/model"
@@ -16,6 +18,7 @@ type FromFimpRouter struct {
 	instanceId   string
 	appLifecycle *model.Lifecycle
 	configs      *model.Configs
+	pb           *handler.Playback
 }
 
 func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs) *FromFimpRouter {
@@ -43,14 +46,32 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 	log.Debug("New fimp msg")
 	addr := strings.Replace(newMsg.Addr.ServiceAddress, "_0", "", 1)
 	switch newMsg.Payload.Service {
-	case "out_lvl_switch":
-		addr = strings.Replace(addr, "l", "", 1)
+
+	case "media_player":
+
 		switch newMsg.Payload.Type {
-		case "cmd.binary.set":
-			// TODO: This is example . Add your logic here or remove
-		case "cmd.lvl.set":
-			// TODO: This is an example . Add your logic here or remove
+		case "cmd.playback.set":
+			// get "play", "pause", "togglePlayPause", "skipToNextTrack" or "skipToPreviousTrack"
+			val, err := newMsg.Payload.GetStringValue()
+			if err != nil {
+				log.Error("Ctrl error")
+			}
+
+			fc.pb.PlaybackSet(val, addr)
+
+		case "cmd.playback_mode.set":
+			// get str_map including bool values of repeat, repeatOne, crossfade and shuffle
+			val, err := newMsg.Payload.GetStrMapValue()
+			if err != nil {
+				log.Error("Set mode error")
+			}
+			log.Debug(val)
+			log.Debug(addr)
+			// sonos.SetMode(val, addr)
+		case "cmd.volume.set":
+
 		}
+
 	case "out_bin_switch":
 		log.Debug("Sending switch")
 		// TODO: This is an example . Add your logic here or remove
@@ -95,12 +116,12 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				ErrorCode: "",
 			}
 			if authReq.AccessToken != "" && authReq.RefreshToken != "" {
-				// TODO: This is an example . Add your logic here or remove
+				fc.appLifecycle.SetAuthState(model.AuthStateAuthenticated)
+
 			} else {
 				status.Status = "ERROR"
 				status.ErrorText = "Empty username or password"
 			}
-			fc.appLifecycle.SetAuthState(model.AuthStateAuthenticated)
 			msg := fimpgo.NewMessage("evt.auth.status_report", model.ServiceName, fimpgo.VTypeObject, status, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				// if response topic is not set , sending back to default application event topic

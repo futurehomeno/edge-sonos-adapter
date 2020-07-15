@@ -1,11 +1,22 @@
-Thingsplex  service project generator . 
+## Futurehome Sonos adapter
+Unfinished
 
-To generate new service project run: `./generate-service.sh new_service_name`
+### Service name
 
+`media_player`
 
-The generator depends on:
-* python3
-* golang
-* docker , only if host is not debian linux and target is debian package . 
+### Interfaces
 
+Type        | Interface                 | Value type        | Description
+------------|---------------------------|-------------------|-------
+in          | cmd.playback.set          | string            | play/pause/togglePlayPause/skipToNextTrack/skipToPreviousTrack
+in          | cmd.playback_mode.set     | str_map           | {"repeat": false, "repeatOne": false, "crossfade": false, "shuffle": false}
+in          | cmd.playback.get_report   |                   |
+out         | evt.playback.report       | str_map           |
+-           |-                          |-                  |
+in          | cmd.volume.set            | int               | 0-10
+in          | cmd.volume.get            |                   |
+out         | evt.volume.report         | str_map           | {«volume»: 85, «muted»: false, «fixed»: false}
+-           |-                          |-                  |
 
+More interfaces coming
