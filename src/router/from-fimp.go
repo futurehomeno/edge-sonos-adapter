@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/thingsplex/sonos/sonos-api"
+
 	"github.com/thingsplex/sonos/handler"
 
 	"github.com/futurehomeno/fimpgo"
@@ -20,6 +22,8 @@ type FromFimpRouter struct {
 	configs      *model.Configs
 	states       *model.States
 	pb           *handler.Playback
+	vol          *handler.Volume
+	client       *sonos.Client
 }
 
 func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs) *FromFimpRouter {
@@ -68,7 +72,12 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			fc.pb.ModeSet(val, addr)
 		case "cmd.volume.set":
-
+			// get int from 0-100 representing new volume in %
+			val, err := newMsg.Payload.GetIntValue()
+			if err != nil {
+				log.Error("Volume error")
+			}
+			fc.vol.VolumeSet(val, addr)
 		}
 
 	case model.ServiceName:
@@ -103,6 +112,27 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				fc.mqt.Publish(adr, msg)
 			}
 			fc.configs.SaveToFile()
+
+			// fc.client.GetHousehold(fc.configs.AccessToken)
+			// fc.client.GetPlayersAndGroups(fc.configs.AccessToken, HOUSEHOLDID)
+
+		case "cmd.auth.logout":
+			// exclude all players
+			// respond to wanted topic with necessary value(s)
+			fc.configs.AccessToken = ""
+			fc.appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
+			fc.appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
+			fc.appLifecycle.SetConnectionState(model.ConnStateDisconnected)
+
+			val2 := map[string]interface{}{
+				"errors":  nil,
+				"success": true,
+			}
+			msg := fimpgo.NewMessage("evt.pd7.response", "vinculum", fimpgo.VTypeObject, val2, nil, nil, newMsg.Payload)
+			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
+				log.Error("Could not respond to wanted request")
+			}
+			fc.configs.LoadDefaults()
 
 		case "cmd.app.get_manifest":
 			mode, err := newMsg.Payload.GetStringValue()

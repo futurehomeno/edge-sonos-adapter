@@ -56,12 +56,19 @@ func (c *Client) GetHousehold(accessToken string) (*Client, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error(fmt.Errorf("Can't get households, error: ", err))
+		return nil, err
 	}
+	log.Debug("New Request: ", req)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
 	resp, err := http.DefaultClient.Do(req)
-	processHTTPResponse(resp, err, c)
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on GetHousehold: ", err)
+	}
 
+	log.Debug("getHousehold first resp: ", resp)
+	processHTTPResponse(resp, err, c)
+	log.Debug("This is current client: ", c)
 	return c, nil
 }
 
@@ -72,11 +79,17 @@ func (c *Client) GetPlayersAndGroups(accessToken string, HouseholdID string) (*C
 	if err != nil {
 		log.Error(fmt.Errorf("Can't get players and groups, error: ", err))
 	}
+	log.Debug("New Request: ", req)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
 	resp, err := http.DefaultClient.Do(req)
-	log.Debug(resp)
-	return nil, nil
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on GetPlayersAndGroups: ", err)
+	}
+	log.Debug("getPlayersAndGroups first resp: ", resp)
+	processHTTPResponse(resp, err, c)
+	log.Debug("This is current client: ", c)
+	return c, nil
 }
 
 func processHTTPResponse(resp *http.Response, err error, holder interface{}) error {

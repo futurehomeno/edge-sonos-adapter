@@ -48,8 +48,9 @@ func (pb *Playback) GetPlaybackStatus(id string) {
 
 }
 
-func (pb *Playback) ModeSet(val map[string]interface{}, id string) {
-	url := fmt.Sprintf("%s%s%s%s", "https://api.sonos.com/groups/", id, "/playback/playMode")
+// ModeSet sets new mode
+func (pb *Playback) ModeSet(val map[string]string, id string) {
+	url := fmt.Sprintf("%s%s%s", "https://api.sonos.com/groups/", id, "/playback/playMode")
 
 	mode := map[string]interface{}{
 		"playmodes": val,
