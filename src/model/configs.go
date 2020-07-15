@@ -29,7 +29,9 @@ type Configs struct {
 	ConfiguredBy       string `json:"configured_by"`
 	Param1             bool   `json:"param_1"`
 	Param2             string `json:"param_2"`
-	AuthorizationCode  string `json:"authorization_code"`
+	AccessToken        string `json:"access_token"`
+	RefreshToken       string `json:"refresh_token"`
+	ExpiresIn          int    `json:"expires_in"`
 }
 
 func NewConfigs(workDir string) *Configs {
@@ -86,13 +88,8 @@ func (cf *Configs) LoadDefaults() error {
 	return utils.CopyFile(defaultConfigFile, configFile)
 }
 
-func (cf *Configs) IsConfigured() bool {
-	// TODO : Add logic here
-	return true
-}
-
 func (cf *Configs) IsAuthenticated() bool {
-	if cf.AuthorizationCode != "" {
+	if cf.AccessToken != "" && cf.AccessToken != "access_token" {
 		return true
 	}
 	return false

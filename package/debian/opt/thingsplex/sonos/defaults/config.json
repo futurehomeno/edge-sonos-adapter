@@ -7,5 +7,8 @@
   "work_dir": "/opt/thingsplex/sonos",
   "log_file": "/var/log/thingsplex/sonos/sonos.log",
   "log_level": "debug",
-  "log_format": "text"
+  "log_format": "text",
+  "access_token": "access_token",
+  "refresh_token": "refresh_token",
+  "expires_in": 0
 }

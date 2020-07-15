@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -23,7 +25,7 @@ func (pb *Playback) PlaybackSet(val string, id string) {
 	log.Debug("New request: ", req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Error("Error when DefaultClient.Do on playbackSet: ", err)
+		log.Error("Error when DefaultClient.Do on PlaybackSet: ", err)
 	}
 	log.Debug("playbackSet first resp: ", resp)
 
@@ -40,8 +42,33 @@ func (pb *Playback) GetPlaybackStatus(id string) {
 	log.Debug("New Request: ", req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Error("Error when DefaultClient.Do on getPlaybackStatus: ", err)
+		log.Error("Error when DefaultClient.Do on GetPlaybackStatus: ", err)
 	}
 	log.Debug("playbackStatus first resp: ", resp)
 
+}
+
+func (pb *Playback) ModeSet(val map[string]interface{}, id string) {
+	url := fmt.Sprintf("%s%s%s%s", "https://api.sonos.com/groups/", id, "/playback/playMode")
+
+	mode := map[string]interface{}{
+		"playmodes": val,
+	}
+	bytesRepresentation, err := json.Marshal(mode)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bytesRepresentation))
+	if err != nil {
+		log.Error("Error when setting mode: ", err)
+		return
+	}
+	log.Debug("New Request: ", req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on ModeSet: ", err)
+	}
+	log.Debug("modeSet first resp: ", resp)
 }

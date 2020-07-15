@@ -18,6 +18,7 @@ type FromFimpRouter struct {
 	instanceId   string
 	appLifecycle *model.Lifecycle
 	configs      *model.Configs
+	states       *model.States
 	pb           *handler.Playback
 }
 
@@ -65,43 +66,14 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err != nil {
 				log.Error("Set mode error")
 			}
-			log.Debug(val)
-			log.Debug(addr)
-			// sonos.SetMode(val, addr)
+			fc.pb.ModeSet(val, addr)
 		case "cmd.volume.set":
 
 		}
 
-	case "out_bin_switch":
-		log.Debug("Sending switch")
-		// TODO: This is an example . Add your logic here or remove
 	case model.ServiceName:
 		adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: model.ServiceName, ResourceAddress: "1"}
 		switch newMsg.Payload.Type {
-		case "cmd.auth.login":
-			authReq := model.Login{}
-			err := newMsg.Payload.GetObjectValue(&authReq)
-			if err != nil {
-				log.Error("Incorrect login message ")
-				return
-			}
-			status := model.AuthStatus{
-				Status:    model.AuthStateAuthenticated,
-				ErrorText: "",
-				ErrorCode: "",
-			}
-			if authReq.Username != "" && authReq.Password != "" {
-				// TODO: This is an example . Add your logic here or remove
-			} else {
-				status.Status = "ERROR"
-				status.ErrorText = "Empty username or password"
-			}
-			fc.appLifecycle.SetAuthState(model.AuthStateAuthenticated)
-			msg := fimpgo.NewMessage("evt.auth.status_report", model.ServiceName, fimpgo.VTypeObject, status, nil, nil, newMsg.Payload)
-			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
-				// if response topic is not set , sending back to default application event topic
-				fc.mqt.Publish(adr, msg)
-			}
 
 		case "cmd.auth.set_tokens":
 			authReq := model.SetTokens{}
@@ -116,8 +88,11 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				ErrorCode: "",
 			}
 			if authReq.AccessToken != "" && authReq.RefreshToken != "" {
+				fc.configs.AccessToken = authReq.AccessToken
+				fc.configs.RefreshToken = authReq.RefreshToken
+				fc.configs.ExpiresIn = authReq.ExpiresIn
 				fc.appLifecycle.SetAuthState(model.AuthStateAuthenticated)
-
+				fc.appLifecycle.SetConnectionState(model.ConnStateConnected)
 			} else {
 				status.Status = "ERROR"
 				status.ErrorText = "Empty username or password"
@@ -127,6 +102,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				// if response topic is not set , sending back to default application event topic
 				fc.mqt.Publish(adr, msg)
 			}
+			fc.configs.SaveToFile()
 
 		case "cmd.app.get_manifest":
 			mode, err := newMsg.Payload.GetStringValue()

@@ -24,10 +24,16 @@ func main() {
 	}
 	appLifecycle := model.NewAppLifecycle()
 	configs := model.NewConfigs(workDir)
+	states := model.NewStates(workDir)
 	err := configs.LoadFromFile()
 	if err != nil {
 		fmt.Print(err)
 		panic("Can't load config file.")
+	}
+	err = states.LoadFromFile()
+	if err != nil {
+		fmt.Print(err)
+		panic("Can't load state file.")
 	}
 
 	utils.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
@@ -45,13 +51,12 @@ func main() {
 	fimpRouter.Start()
 
 	appLifecycle.SetConnectionState(model.ConnStateDisconnected)
-	if configs.IsConfigured() && err == nil {
+	appLifecycle.SetAppState(model.AppStateRunning, nil)
+	if states.IsConfigured() && err == nil {
 		appLifecycle.SetConfigState(model.ConfigStateConfigured)
-		appLifecycle.SetAppState(model.AppStateRunning, nil)
 		appLifecycle.SetConnectionState(model.ConnStateConnected)
 	} else {
 		appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
-		appLifecycle.SetAppState(model.AppStateNotConfigured, nil)
 		appLifecycle.SetConnectionState(model.ConnStateDisconnected)
 	}
 
@@ -63,6 +68,10 @@ func main() {
 
 	for {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
+		ticker := time.NewTicker(time.Duration(60) * time.Second)
+		for ; true; <-ticker.C {
+			log.Debug("ticker")
+		}
 		appLifecycle.WaitForState(model.AppStateNotConfigured, "main")
 	}
 
