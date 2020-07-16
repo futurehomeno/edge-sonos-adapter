@@ -26,6 +26,15 @@ type States struct {
 	Households []sonos.Household `json:"households"`
 	Groups     []sonos.Group     `json:"groups"`
 	Players    []sonos.Player    `json:"players"`
+
+	PlaybackState string `json:"playbackState"`
+
+	PlayModes struct {
+		Repeat    bool `json:"repeat"`
+		RepeatOne bool `json:"repeatOne"`
+		Shuffle   bool `json:"shuffle"`
+		Crossfade bool `json:"crossfade"`
+	}
 }
 
 func NewStates(workDir string) *States {

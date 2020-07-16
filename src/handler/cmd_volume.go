@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -15,8 +16,8 @@ type Volume struct {
 }
 
 // VolumeSet sends request to Sonos to set new volume lvl
-func (vol *Volume) VolumeSet(val int64, id string) {
-	url := fmt.Sprintf("%s%s%s", "https://api.sonos.com/groups/", id, "/groupVolume")
+func (vol *Volume) VolumeSet(val int64, id string, accessToken string) {
+	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/groupVolume")
 
 	volume := map[string]interface{}{
 		"volume": val,
@@ -32,6 +33,8 @@ func (vol *Volume) VolumeSet(val int64, id string) {
 		log.Error("Error when setting volume: ", err)
 		return
 	}
+	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	req.Header.Set("Content-Type", "application/json")
 	log.Debug("New Request: ", req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

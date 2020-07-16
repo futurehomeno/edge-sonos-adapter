@@ -79,7 +79,7 @@ func (ns *NetworkService) MakeInclusionReport(Group sonos.Group) fimptype.ThingI
 		Interfaces: mediaPlayerInterfaces,
 	}
 
-	groupID := Group.GroupId
+	groupID := Group.OnlyGroupId
 	manufacturer = "sonos"
 	name = Group.Name
 	serviceAddress := fmt.Sprintf("%s", groupID)

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -33,7 +34,9 @@ type Household struct {
 }
 
 type Group struct {
-	GroupId       string        `json:"id"`
+	GroupId       string `json:"id"`
+	OnlyGroupId   string
+	FimpId        string
 	Name          string        `json:"name"`
 	CoordinatorId string        `json:"coordinatorId"`
 	PlaybackState string        `json:"playbackState"`
@@ -41,7 +44,8 @@ type Group struct {
 }
 
 type Player struct {
-	Id             string        `json:"id"`
+	Id             string `json:"id"`
+	FimpId         string
 	Name           string        `json:"name"`
 	WebSocketUrl   string        `json:"websocketUrl"`
 	SWVersion      string        `json:"softwareVersion"`
@@ -108,6 +112,14 @@ func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
 		return nil, nil, err
+	}
+	for i := 0; i < len(c.Groups); i++ {
+		IDs := strings.Split(c.Groups[i].GroupId, "_")[1]
+		c.Groups[i].FimpId = strings.Split(IDs, ":")[0]
+		c.Groups[i].OnlyGroupId = strings.Split(IDs, ":")[1]
+	}
+	for i := 0; i < len(c.Players); i++ {
+		c.Players[i].FimpId = strings.Split(c.Players[i].Id, "_")[1]
 	}
 
 	return c.Groups, c.Players, nil

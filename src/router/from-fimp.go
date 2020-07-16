@@ -63,23 +63,45 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err != nil {
 				log.Error("Ctrl error")
 			}
-
-			fc.pb.PlaybackSet(val, addr)
-
-		case "cmd.playback_mode.set":
-			// get str_map including bool values of repeat, repeatOne, crossfade and shuffle
-			val, err := newMsg.Payload.GetStrMapValue()
-			if err != nil {
-				log.Error("Set mode error")
+			for i := 0; i < len(fc.states.Groups); i++ {
+				if addr == fc.states.Groups[i].OnlyGroupId {
+					fc.pb.PlaybackSet(val, fc.states.Groups[i].GroupId, fc.configs.AccessToken)
+				}
 			}
-			fc.pb.ModeSet(val, addr)
-		case "cmd.volume.set":
-			// get int from 0-100 representing new volume in %
-			val, err := newMsg.Payload.GetIntValue()
-			if err != nil {
-				log.Error("Volume error")
+			
+		case "cmd.playback.get_report":
+			// send playback status
+			for i := 0; i < len(fc.states.Groups); i++ {
+				if addr == fc.states.Groups[i].OnlyGroupId {
+					fc.pb.GetPlaybackStatus(fc.states.Groups[i].GroupId, fc.configs.AccessToken)
+					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
+					msg := fimpgo.NewMessage("evt.mode.report", "media_player", fimpgo.VTypeStrMap, fc.states.PlaybackState, nil, nil, newMsg.Payload)
+					fc.mqt.Publish(adr, msg)
+				}
 			}
-			fc.vol.VolumeSet(val, addr)
+		}
+
+	case "cmd.playback_mode.set":
+		// get str_map including bool values of repeat, repeatOne, crossfade and shuffle
+		val, err := newMsg.Payload.GetStrMapValue()
+		if err != nil {
+			log.Error("Set mode error")
+		}
+		for i := 0; i < len(fc.states.Groups); i++ {
+			if addr == fc.states.Groups[i].OnlyGroupId {
+				fc.pb.ModeSet(val, fc.states.Groups[i].GroupId, fc.configs.AccessToken)
+			}
+		}
+	case "cmd.volume.set":
+		// get int from 0-100 representing new volume in %
+		val, err := newMsg.Payload.GetIntValue()
+		if err != nil {
+			log.Error("Volume error")
+		}
+		for i := 0; i < len(fc.states.Groups); i++ {
+			if addr == fc.states.Groups[i].OnlyGroupId {
+				fc.vol.VolumeSet(val, fc.states.Groups[i].GroupId, fc.configs.AccessToken)
+			}
 		}
 
 	case model.ServiceName:
@@ -267,8 +289,17 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 		case "cmd.network.get_all_nodes":
 			// TODO: This is an example . Add your logic here or remove
 		case "cmd.thing.get_inclusion_report":
-			//nodeId , _ := newMsg.Payload.GetStringValue()
-			// TODO: This is an example . Add your logic here or remove
+			nodeId, _ := newMsg.Payload.GetStringValue()
+			for i := 0; i < len(fc.states.Groups); i++ {
+				if nodeId == fc.states.Groups[i].OnlyGroupId {
+					Group := fc.states.Groups[i]
+					inclReport := ns.MakeInclusionReport(Group)
+
+					msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sonos", fimpgo.VTypeObject, inclReport, nil, nil, nil)
+					adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
+					fc.mqt.Publish(&adr, msg)
+				}
+			}
 		case "cmd.thing.inclusion":
 			//flag , _ := newMsg.Payload.GetBoolValue()
 			// TODO: This is an example . Add your logic here or remove
