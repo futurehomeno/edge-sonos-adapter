@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/thingsplex/sonos/sonos-api"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/utils"
 )
@@ -21,9 +23,9 @@ type States struct {
 	ConfiguredAt string `json:"configuret_at"`
 	ConfiguredBy string `json:"configures_by"`
 
-	Households []interface{}
-	Groups     []interface{}
-	Players    []interface{}
+	Households []sonos.Household `json:"households"`
+	Groups     []sonos.Group     `json:"groups"`
+	Players    []sonos.Player    `json:"players"`
 }
 
 func NewStates(workDir string) *States {

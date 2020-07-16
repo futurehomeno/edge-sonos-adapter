@@ -1,34 +1,33 @@
 {
   "configs":[
     {
-      "id": "param_1",
-      "label": {"en": "Param 1"},
-      "val_t": "bool",
+      "id": "households",
+      "label": {"en": "households"},
+      "val_t": "str_map",
       "ui": {
-        "type": "list_radio",
-        "select": [{"val": true,"label": {"en": "Option 1"}},{"val": false,"label": {"en": "Option 2"}}]
+        "type": "list_checkbox",
+        "select": [{}]
       },
       "val": {
-        "default": false
+        "default": "nothing"
       },
       "is_required": true,
       "hidden":false,
-      "config_point": "init"
+      "config_point": "any"
     }
   ],
   "ui_buttons": [
-    {
-      "id":"fh.default.sync",
-      "label": {"en": "Sync"},
-      "req": {
-        "serv":"hue",
-        "intf_t": "cmd.system.sync",
-        "val": "action1"
-      },
-      "hidden":false
-    }
   ],
   "ui_blocks": [
+    {
+      "id": "households",
+      "header": {"en": "Choose households"},
+      "text": {"en": ""},
+      "configs": ["households"],
+      "buttons": [],
+      "footer": {"en": ""},
+      "hidden": false
+    }
   ],
   "auth": {
     "type": "oauth2_code_grant",

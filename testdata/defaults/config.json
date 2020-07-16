@@ -10,5 +10,6 @@
   "log_format": "text",
   "access_token": "access_token",
   "refresh_token": "refresh_token",
-  "expires_in": 0 
+  "expires_in": 0,
+  "wanted_households": "households"
 }

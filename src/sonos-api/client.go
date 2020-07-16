@@ -3,6 +3,7 @@ package sonos
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -40,56 +41,76 @@ type Group struct {
 }
 
 type Player struct {
-	Id            string        `json:"id"`
-	Name          string        `json:"name"`
-	Icon          string        `json:"icon"`
-	SWVersion     string        `json:"softwareVersion"`
-	DeviceIds     []interface{} `json:"deviceIds"`
-	APIVersion    string        `json:"apiVersion"`
-	MinAPIVersion string        `json:"minApiVersion"`
-	Capabilities  []interface{} `json:"capabilities"`
+	Id             string        `json:"id"`
+	Name           string        `json:"name"`
+	WebSocketUrl   string        `json:"websocketUrl"`
+	SWVersion      string        `json:"softwareVersion"`
+	APIVersion     string        `json:"apiVersion"`
+	MinAPIVersion  string        `json:"minApiVersion"`
+	IsUnregistered bool          `json:"isUnregistered"`
+	Capabilities   []interface{} `json:"capabilities"`
+	DeviceIds      []interface{} `json:"deviceIds"`
+	Icon           string        `json:"icon"`
 }
 
-func (c *Client) GetHousehold(accessToken string) (*Client, error) {
-	url := fmt.Sprintf("%s%s", controlURL, "v1/households")
+func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
+	url := fmt.Sprintf("%s%s", controlURL, "/v1/households")
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error(fmt.Errorf("Can't get households, error: ", err))
 		return nil, err
 	}
-	log.Debug("New Request: ", req)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	log.Debug("New Request: ", req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error("Error when DefaultClient.Do on GetHousehold: ", err)
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error when ioutil.Readall on GetHousehold: ", err)
+		return nil, err
+	}
+	err = json.Unmarshal(body, &c)
+	if err != nil {
+		log.Error("Error when unmarshaling body: ", err)
+		return nil, err
 	}
 
-	log.Debug("getHousehold first resp: ", resp)
-	processHTTPResponse(resp, err, c)
-	log.Debug("This is current client: ", c)
-	return c, nil
+	return c.Households, nil
 }
 
-func (c *Client) GetPlayersAndGroups(accessToken string, HouseholdID string) (*Client, error) {
-	url := fmt.Sprintf("%s%s%s%s", controlURL, "v1/households", HouseholdID, "groups")
+func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]Group, []Player, error) {
+	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/groups")
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error(fmt.Errorf("Can't get players and groups, error: ", err))
+		return nil, nil, err
 	}
-	log.Debug("New Request: ", req)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	log.Debug("New Request: ", req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error("Error when DefaultClient.Do on GetPlayersAndGroups: ", err)
+		return nil, nil, err
 	}
-	log.Debug("getPlayersAndGroups first resp: ", resp)
-	processHTTPResponse(resp, err, c)
-	log.Debug("This is current client: ", c)
-	return c, nil
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error when ioutil.ReadAll on GetGroupsAndPlayers: ", err)
+		return nil, nil, err
+	}
+	err = json.Unmarshal(body, &c)
+	if err != nil {
+		log.Error("Error when unmarshaling body: ", err)
+		return nil, nil, err
+	}
+
+	return c.Groups, c.Players, nil
 }
 
 func processHTTPResponse(resp *http.Response, err error, holder interface{}) error {

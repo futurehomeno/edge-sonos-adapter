@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/thingsplex/sonos/sonos-api"
@@ -26,8 +27,8 @@ type FromFimpRouter struct {
 	client       *sonos.Client
 }
 
-func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs) *FromFimpRouter {
-	fc := FromFimpRouter{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: mqt, appLifecycle: appLifecycle, configs: configs}
+func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs, states *model.States) *FromFimpRouter {
+	fc := FromFimpRouter{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: mqt, appLifecycle: appLifecycle, configs: configs, states: states}
 	fc.mqt.RegisterChannel("ch1", fc.inboundMsgCh)
 	return &fc
 }
@@ -50,6 +51,7 @@ func (fc *FromFimpRouter) Start() {
 func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 	log.Debug("New fimp msg")
 	addr := strings.Replace(newMsg.Addr.ServiceAddress, "_0", "", 1)
+	ns := model.NetworkService{}
 	switch newMsg.Payload.Service {
 
 	case "media_player":
@@ -111,10 +113,13 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				// if response topic is not set , sending back to default application event topic
 				fc.mqt.Publish(adr, msg)
 			}
-			fc.configs.SaveToFile()
+			fc.states.Households, err = fc.client.GetHousehold(fc.configs.AccessToken)
+			if err != nil {
+				log.Error("error")
+			}
 
-			// fc.client.GetHousehold(fc.configs.AccessToken)
-			// fc.client.GetPlayersAndGroups(fc.configs.AccessToken, HOUSEHOLDID)
+			fc.configs.SaveToFile()
+			fc.states.SaveToFile()
 
 		case "cmd.auth.logout":
 			// exclude all players
@@ -150,6 +155,12 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				manifest.AppState = *fc.appLifecycle.GetAllStates()
 				manifest.ConfigState = fc.configs
 			}
+			var householdSelect []interface{}
+			for i := 0; i < len(fc.states.Households); i++ {
+				label := fmt.Sprintf("%s%s", "System ", strconv.Itoa(i))
+				householdSelect = append(householdSelect, map[string]interface{}{"val": fc.states.Households[i].ID, "label": map[string]interface{}{"en": label}})
+			}
+			manifest.Configs[0].UI.Select = householdSelect
 			msg := fimpgo.NewMessage("evt.app.manifest_report", model.ServiceName, fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				// if response topic is not set , sending back to default application event topic
@@ -178,8 +189,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				log.Error("Can't parse configuration object")
 				return
 			}
-			fc.configs.Param1 = conf.Param1
-			fc.configs.Param2 = conf.Param2
+			fc.configs.WantedHouseholds = conf.WantedHouseholds
 			fc.configs.SaveToFile()
 			log.Debugf("App reconfigured . New parameters : %v", fc.configs)
 			// TODO: This is an example . Add your logic here or remove
@@ -190,6 +200,22 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			msg := fimpgo.NewMessage("evt.app.config_report", model.ServiceName, fimpgo.VTypeObject, configReport, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				fc.mqt.Publish(adr, msg)
+			}
+
+			for i := 0; i < len(fc.configs.WantedHouseholds); i++ {
+				HouseholdID := fmt.Sprintf("%v", fc.configs.WantedHouseholds[i])
+				fc.states.Groups, fc.states.Players, err = fc.client.GetGroupsAndPlayers(fc.configs.AccessToken, HouseholdID)
+				if err != nil {
+					log.Error("error")
+				}
+				for i := 0; i < len(fc.states.Groups); i++ {
+					inclReport := ns.MakeInclusionReport(fc.states.Groups[i])
+
+					msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sonos", fimpgo.VTypeObject, inclReport, nil, nil, nil)
+					adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
+					fc.mqt.Publish(&adr, msg)
+				}
+				fc.appLifecycle.SetConfigState(model.ConfigStateConfigured)
 			}
 
 		case "cmd.log.set_level":

@@ -2,10 +2,9 @@ package model
 
 import (
 	"fmt"
-	"reflect"
-	"strconv"
 
 	"github.com/futurehomeno/fimpgo/fimptype"
+	"github.com/thingsplex/sonos/sonos-api"
 )
 
 // NetworkService is for export
@@ -13,8 +12,7 @@ type NetworkService struct {
 }
 
 // MakeInclusionReport makes inclusion report for player with id given in parameter
-func (ns *NetworkService) MakeInclusionReport(nodeID int, Players []interface{}) fimptype.ThingInclusionReport {
-	var deviceID string
+func (ns *NetworkService) MakeInclusionReport(Group sonos.Group) fimptype.ThingInclusionReport {
 	// var err error
 
 	var name, manufacturer string
@@ -28,17 +26,27 @@ func (ns *NetworkService) MakeInclusionReport(nodeID int, Players []interface{})
 		Version:   "1",
 	}, {
 		Type:      "in",
-		MsgType:   "cmd.playback_mode.set",
-		ValueType: "str_map",
-		Version:   "1",
-	}, {
-		Type:      "in",
 		MsgType:   "cmd.playback.get_report",
 		ValueType: "null",
 		Version:   "1",
 	}, {
 		Type:      "out",
 		MsgType:   "evt.playback.report",
+		ValueType: "str_map",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.mode.set",
+		ValueType: "str_map",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.mode.get_report",
+		ValueType: "null",
+		Version:   "1",
+	}, {
+		Type:      "out",
+		MsgType:   "evt.mode.report",
 		ValueType: "str_map",
 		Version:   "1",
 	}, {
@@ -64,21 +72,20 @@ func (ns *NetworkService) MakeInclusionReport(nodeID int, Players []interface{})
 		Address: "/rt:dev/rn:sonos/ad:1/sv:media_player/ad:",
 		Enabled: true,
 		Groups:  []string{"ch_0"},
-		Props:   map[string]interface{}{
-			// What do I put here
+		Props: map[string]interface{}{
+			"sup_playback": []string{"play", "pause", "togglePlayPause", "skipToNextTrack", "skipToPreviousTrack"},
+			"sup_modes":    []string{"repeat", "repeatOne", "shuffle", "crossfade"},
 		},
 		Interfaces: mediaPlayerInterfaces,
 	}
 
-	device := Players[nodeID]
-	val := reflect.ValueOf(device)
-	deviceID = strconv.FormatInt(val.FieldByName("DeviceID").Interface().(int64), 10)
+	groupID := Group.GroupId
 	manufacturer = "sonos"
-	name = val.FieldByName("DeviceName").Interface().(string)
-	serviceAddress := fmt.Sprintf("%s", deviceID)
+	name = Group.Name
+	serviceAddress := fmt.Sprintf("%s", groupID)
 	mediaPlayerService.Address = mediaPlayerService.Address + serviceAddress
 	services = append(services, mediaPlayerService)
-	deviceAddr = fmt.Sprintf("%s", deviceID)
+	deviceAddr = fmt.Sprintf("%s", groupID)
 	powerSource := "ac"
 
 	inclReport := fimptype.ThingInclusionReport{
@@ -89,7 +96,7 @@ func (ns *NetworkService) MakeInclusionReport(nodeID int, Players []interface{})
 		CommTechnology:    "wifi",
 		ProductName:       name,
 		ManufacturerId:    manufacturer,
-		DeviceId:          deviceID,
+		DeviceId:          groupID,
 		HwVersion:         "1",
 		SwVersion:         "1",
 		PowerSource:       powerSource,

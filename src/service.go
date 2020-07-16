@@ -47,7 +47,7 @@ func main() {
 	responder.RegisterResource(model.GetDiscoveryResource())
 	responder.Start()
 
-	fimpRouter := router.NewFromFimpRouter(mqtt, appLifecycle, configs)
+	fimpRouter := router.NewFromFimpRouter(mqtt, appLifecycle, configs, states)
 	fimpRouter.Start()
 
 	appLifecycle.SetConnectionState(model.ConnStateDisconnected)
