@@ -19,7 +19,10 @@ out         | evt.mode.report           | str_map           |
 -|||
 in          | cmd.volume.set            | int               | 0-100
 in          | cmd.volume.get_report     |                   |
-out         | evt.volume.report         | str_map           | {«volume»: 85, «muted»: false, «fixed»: false}
+out         | evt.volume.report         | str_map           | {«volume»: 85, «muted»: false}
+-|||
+in          | cmd.mute.set              | bool              |
+out         | evt.mute.report           | bool              | true, false
 -|||
 in          | cmd.metadata.get_report   |                   | 
 out         | evt.metadata.report       | str_map           | Album name, track name, imageUrl, artist etc. 
