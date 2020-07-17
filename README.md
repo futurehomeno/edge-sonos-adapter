@@ -18,9 +18,11 @@ in          | cmd.mode.get_report       |                   |
 out         | evt.mode.report           | str_map           |
 -|||
 in          | cmd.volume.set            | int               | 0-100
-in          | cmd.volume.get            |                   |
+in          | cmd.volume.get_report     |                   |
 out         | evt.volume.report         | str_map           | {«volume»: 85, «muted»: false, «fixed»: false}
 -|||
+in          | cmd.metadata.get_report   |                   | 
+out         | evt.metadata.report       | str_map           | Album name, track name, imageUrl, artist etc. 
 
 ### Service props
 
