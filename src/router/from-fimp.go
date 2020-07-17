@@ -26,6 +26,7 @@ type FromFimpRouter struct {
 	vol          *handler.Volume
 	client       *sonos.Client
 	id           *handler.Id
+	mute         *handler.Mute
 }
 
 func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs, states *model.States) *FromFimpRouter {
@@ -142,6 +143,28 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if success {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeStrMap, fc.states.PlaybackState, nil, nil, newMsg.Payload)
+				fc.mqt.Publish(adr, msg)
+			}
+		case "cmd.mute.set":
+			// find groupId fom addr(playerId)
+			CorrID, err := fc.id.FindGroupFromPlayer(addr, fc.states.Groups)
+			if err != nil {
+				log.Error(err)
+			}
+
+			// get bool value
+			val, err := newMsg.Payload.GetBoolValue()
+			if err != nil {
+				log.Error("Volume error")
+			}
+
+			success, err := fc.mute.MuteSet(val, CorrID, fc.configs.AccessToken)
+			if err != nil {
+				log.Error(err)
+			}
+			if success {
+				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
+				msg := fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeStrMap, fc.states.PlaybackState, nil, nil, newMsg.Payload)
 				fc.mqt.Publish(adr, msg)
 			}
 		}
