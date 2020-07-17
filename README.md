@@ -20,7 +20,7 @@ out         | evt.volume.report         | int               | 0-100
 -|||
 in          | cmd.mute.set              | bool              |
 in          | cmd.mute.get_report       |                   |
-out         | evt.mute.report           | bool              | true, false
+out         | evt.mute.report           | bool              |
 -|||
 in          | cmd.metadata.get_report   |                   | 
 out         | evt.metadata.report       | str_map           | {"album": "", "track": "", "artist": "", "image_url": ""}
