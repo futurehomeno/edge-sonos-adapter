@@ -12,7 +12,7 @@ type NetworkService struct {
 }
 
 // MakeInclusionReport makes inclusion report for player with id given in parameter
-func (ns *NetworkService) MakeInclusionReport(Group sonos.Group) fimptype.ThingInclusionReport {
+func (ns *NetworkService) MakeInclusionReport(Player sonos.Player) fimptype.ThingInclusionReport {
 	// var err error
 
 	var name, manufacturer string
@@ -56,12 +56,37 @@ func (ns *NetworkService) MakeInclusionReport(Group sonos.Group) fimptype.ThingI
 		Version:   "1",
 	}, {
 		Type:      "in",
-		MsgType:   "cmd.volume.get",
+		MsgType:   "cmd.volume.get_report",
 		ValueType: "null",
 		Version:   "1",
 	}, {
 		Type:      "out",
 		MsgType:   "evt.volume.report",
+		ValueType: "str_map",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.mute.set",
+		ValueType: "bool",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.mute.get_report",
+		ValueType: "null",
+		Version:   "1",
+	}, {
+		Type:      "out",
+		MsgType:   "evt.mute.report",
+		ValueType: "bool",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.metadata.get_report",
+		ValueType: "null",
+		Version:   "1",
+	}, {
+		Type:      "out",
+		MsgType:   "evt.metadata.report",
 		ValueType: "str_map",
 		Version:   "1",
 	}}
@@ -73,19 +98,20 @@ func (ns *NetworkService) MakeInclusionReport(Group sonos.Group) fimptype.ThingI
 		Enabled: true,
 		Groups:  []string{"ch_0"},
 		Props: map[string]interface{}{
-			"sup_playback": []string{"play", "pause", "togglePlayPause", "skipToNextTrack", "skipToPreviousTrack"},
-			"sup_modes":    []string{"repeat", "repeatOne", "shuffle", "crossfade"},
+			"sup_playback": []string{"play", "pause", "toggle_play_pause", "next_track", "previous_track"},
+			"sup_modes":    []string{"repeat", "repeat_one", "shuffle", "crossfade"},
+			"sup_metadata": []string{"album", "track", "artist", "image_url"},
 		},
 		Interfaces: mediaPlayerInterfaces,
 	}
 
-	groupID := Group.OnlyGroupId
+	playerID := Player.FimpId
 	manufacturer = "sonos"
-	name = Group.Name
-	serviceAddress := fmt.Sprintf("%s", groupID)
+	name = Player.Name
+	serviceAddress := fmt.Sprintf("%s", playerID)
 	mediaPlayerService.Address = mediaPlayerService.Address + serviceAddress
 	services = append(services, mediaPlayerService)
-	deviceAddr = fmt.Sprintf("%s", groupID)
+	deviceAddr = fmt.Sprintf("%s", playerID)
 	powerSource := "ac"
 
 	inclReport := fimptype.ThingInclusionReport{
@@ -96,7 +122,7 @@ func (ns *NetworkService) MakeInclusionReport(Group sonos.Group) fimptype.ThingI
 		CommTechnology:    "wifi",
 		ProductName:       name,
 		ManufacturerId:    manufacturer,
-		DeviceId:          groupID,
+		DeviceId:          playerID,
 		HwVersion:         "1",
 		SwVersion:         "1",
 		PowerSource:       powerSource,

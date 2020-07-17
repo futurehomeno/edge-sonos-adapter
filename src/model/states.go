@@ -35,6 +35,12 @@ type States struct {
 		Shuffle   bool `json:"shuffle"`
 		Crossfade bool `json:"crossfade"`
 	}
+
+	Volume struct {
+		Volume string `json:"volume"`
+		Muted  string `json:"muted"`
+		Fixed  string `json:"fixed"`
+	}
 }
 
 func NewStates(workDir string) *States {

@@ -19,12 +19,24 @@ type Playback struct {
 }
 
 // PlaybackSet sends request to Sonos to play, pause or skip
-func (pb *Playback) PlaybackSet(val string, id string, accessToken string) error {
+func (pb *Playback) PlaybackSet(val string, id string, accessToken string) (bool, error) {
+	// change toggle_play_pause to togglePlayPause, next_track to skipToNextTrack and previous_track to skipToPreviousTrack
+	log.Debug("THIS IS THE VALUE BEFORE: ", val)
+	if val == "toggle_play_pause" {
+		val = "togglePlayPause"
+	} else if val == "next_track" {
+		val = "skipToNextTrack"
+	} else if val == "previous_track" {
+		val = "skipToPreviousTrack"
+	}
+	log.Debug("THIS IS THE VALUE AFTER: ", val)
+
 	url := fmt.Sprintf("%s%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback/", val)
+
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		log.Error("Error when setting playback: ", err)
-		return err
+		return false, err
 	}
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
 	req.Header.Set("Content-Type", "application/json")
@@ -32,24 +44,24 @@ func (pb *Playback) PlaybackSet(val string, id string, accessToken string) error
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error("Error when DefaultClient.Do on PlaybackSet: ", err)
+		return false, err
 	}
-	log.Debug("playbackSet first resp: ", resp)
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetPlaybackStatus: ", err)
-		return err
+
+	if resp.StatusCode != 200 {
+		log.Error("Bad HTTP return code ", resp.StatusCode)
+		return false, err
 	}
-	log.Debug(body)
-	return nil
+
+	return true, nil
 }
 
 // GetPlaybackStatus gets playback status
-func (pb *Playback) GetPlaybackStatus(id string, accessToken string) *Playback {
+func (pb *Playback) GetPlaybackStatus(id string, accessToken string) (bool, error) {
 	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback")
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error("Error when getting playback status: ", err)
-		return nil
+		return false, err
 	}
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
 	req.Header.Set("Content-Type", "application/json")
@@ -57,37 +69,52 @@ func (pb *Playback) GetPlaybackStatus(id string, accessToken string) *Playback {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error("Error when DefaultClient.Do on GetPlaybackStatus: ", err)
+		return false, err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("Error when ioutil.ReadAll on GetPlaybackStatus: ", err)
-		return nil
+		return false, err
 	}
 	err = json.Unmarshal(body, &pb)
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
-		return nil
+		return false, err
 	}
-	return pb
+	if resp.StatusCode != 200 {
+		log.Error("Bad HTTP return code ", resp.StatusCode)
+		return false, err
+	}
+
+	return true, nil
 }
 
 // ModeSet sets new mode
-func (pb *Playback) ModeSet(val map[string]string, id string, accessToken string) {
+func (pb *Playback) ModeSet(val map[string]string, id string, accessToken string) (bool, error) {
 	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback/playMode")
+	// if one of the modes is repeat_one, change to repeatOne
+
+	log.Debug("THIS IS THE VALUE BEFORE: ", val)
+	if _, ok := val["repeat_one"]; ok {
+		val["repeatOne"] = val["repeat_one"]
+		delete(val, "repeat_one")
+	}
+	log.Debug("THIS IS THE VALUE AFTER: ", val)
 
 	mode := map[string]interface{}{
 		"playModes": val,
 	}
+
 	bytesRepresentation, err := json.Marshal(mode)
 	if err != nil {
 		log.Error(err)
-		return
+		return false, err
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bytesRepresentation))
 	if err != nil {
 		log.Error("Error when setting mode: ", err)
-		return
+		return false, err
 	}
 	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
 	req.Header.Set("Content-Type", "application/json")
@@ -96,5 +123,11 @@ func (pb *Playback) ModeSet(val map[string]string, id string, accessToken string
 	if err != nil {
 		log.Error("Error when DefaultClient.Do on ModeSet: ", err)
 	}
-	log.Debug("modeSet first resp: ", resp)
+	if resp.StatusCode != 200 {
+		log.Error("Bad HTTP return code ", resp.StatusCode)
+		return false, err
+	}
+
+	return true, nil
+
 }
