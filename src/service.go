@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/model"
 	"github.com/thingsplex/sonos/router"
+	"github.com/thingsplex/sonos/sonos-api"
 	"github.com/thingsplex/sonos/utils"
 )
 
@@ -35,6 +36,7 @@ func main() {
 		fmt.Print(err)
 		panic("Can't load state file.")
 	}
+	client := sonos.Client{}
 
 	utils.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
 	log.Info("--------------Starting sonos----------------")
@@ -70,7 +72,20 @@ func main() {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
 		ticker := time.NewTicker(time.Duration(60) * time.Second)
 		for ; true; <-ticker.C {
+			// states.LoadFromFile()
+			// configs.LoadFromFile()
+			for i := 0; i < len(states.Groups); i++ {
+				metadata, err := client.GetMetadata(configs.AccessToken, states.Groups[i].GroupId)
+				states.Container = metadata.Container
+				states.CurrentItem = metadata.CurrentItem
+				states.NextItem = metadata.NextItem
+				if err != nil {
+					log.Error(err)
+				}
+				log.Debug(metadata.Container.ImageURL)
+			}
 			log.Debug("ticker")
+			states.SaveToFile()
 		}
 		appLifecycle.WaitForState(model.AppStateNotConfigured, "main")
 	}

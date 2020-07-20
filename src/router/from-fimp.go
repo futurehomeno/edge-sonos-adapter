@@ -216,6 +216,20 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			fc.appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
 			fc.appLifecycle.SetConnectionState(model.ConnStateDisconnected)
 
+			for i := 0; i < len(fc.states.Players); i++ {
+				playerID := fc.states.Players[i].FimpId
+				val := map[string]interface{}{
+					"address": playerID,
+				}
+				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
+				msg := fimpgo.NewMessage("evt.thing.exclusion_report", "sonos", fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
+				fc.mqt.Publish(adr, msg)
+			}
+			fc.states.Households, fc.states.Groups, fc.states.Players = nil, nil, nil
+
+			fc.configs.LoadDefaults()
+			fc.states.LoadDefaults()
+
 			val2 := map[string]interface{}{
 				"errors":  nil,
 				"success": true,

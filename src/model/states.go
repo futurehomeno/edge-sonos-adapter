@@ -23,9 +23,12 @@ type States struct {
 	ConfiguredAt string `json:"configuret_at"`
 	ConfiguredBy string `json:"configures_by"`
 
-	Households []sonos.Household `json:"households"`
-	Groups     []sonos.Group     `json:"groups"`
-	Players    []sonos.Player    `json:"players"`
+	Households  []sonos.Household `json:"households"`
+	Groups      []sonos.Group     `json:"groups"`
+	Players     []sonos.Player    `json:"players"`
+	Container   sonos.Container   `json:"container"`
+	CurrentItem sonos.CurrentItem `json:"currentItem"`
+	NextItem    sonos.NextItem    `json:"nextItem"`
 
 	PlaybackState string `json:"playbackState"`
 

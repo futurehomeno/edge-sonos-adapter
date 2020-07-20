@@ -27,6 +27,9 @@ type Client struct {
 	Households  []Household `json:"households"`
 	Groups      []Group     `json:"groups"`
 	Players     []Player    `json:"players"`
+	Container   Container   `json:"container"`
+	CurrentItem CurrentItem `json:"currentItem"`
+	NextItem    NextItem    `json:"nextItem"`
 }
 
 type Household struct {
@@ -55,6 +58,71 @@ type Player struct {
 	Capabilities   []interface{} `json:"capabilities"`
 	DeviceIds      []interface{} `json:"deviceIds"`
 	Icon           string        `json:"icon"`
+}
+
+type Container struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	ID   struct {
+		ServiceID string `json:"serviceId"`
+		ObjectID  string `json:"objectId"`
+		AccountID string `json:"accountId"`
+	} `json:"id"`
+	Service struct {
+		Name string `json:"name"`
+		ID   string `json:"id"`
+	} `json:"service"`
+	ImageURL string `json:"imageUrl"`
+}
+
+type CurrentItem struct {
+	Track struct {
+		Type     string `json:"type"`
+		Name     string `json:"name"`
+		ImageURL string `json:"imageUrl"`
+		Album    struct {
+			Name string `json:"name"`
+		} `json:"album"`
+		Artist struct {
+			Name string `json:"name"`
+		} `json:"artist"`
+		ID struct {
+			ServiceID string `json:"serviceId"`
+			ObjectID  string `json:"objectId"`
+			AccountID string `json:"accountId"`
+		} `json:"id"`
+		Service struct {
+			Name string `json:"name"`
+			ID   string `json:"id"`
+		} `json:"service"`
+		DurationMillis int      `json:"durationMillis"`
+		Tags           []string `json:"tags"`
+	} `json:"track"`
+}
+
+type NextItem struct {
+	Track struct {
+		Type     string `json:"type"`
+		Name     string `json:"name"`
+		ImageURL string `json:"imageUrl"`
+		Album    struct {
+			Name string `json:"name"`
+		} `json:"album"`
+		Artist struct {
+			Name string `json:"name"`
+		} `json:"artist"`
+		ID struct {
+			ServiceID string `json:"serviceId"`
+			ObjectID  string `json:"objectId"`
+			AccountID string `json:"accountId"`
+		} `json:"id"`
+		Service struct {
+			Name string `json:"name"`
+			ID   string `json:"id"`
+		} `json:"service"`
+		DurationMillis int      `json:"durationMillis"`
+		Tags           []string `json:"tags"`
+	} `json:"track"`
 }
 
 func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
@@ -123,6 +191,35 @@ func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]
 	}
 
 	return c.Groups, c.Players, nil
+}
+
+func (c *Client) GetMetadata(accessToken string, groupID string) (*Client, error) {
+	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/groups/", groupID, "/playbackMetadata")
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Error(fmt.Errorf("Can't get metadata, error: ", err))
+		return nil, err
+	}
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	log.Debug("New Request: ", req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on GetMetadata: ", err)
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error when ioutil.ReadAll on GetGroupsAndPlayers: ", err)
+		return nil, err
+	}
+	err = json.Unmarshal(body, &c)
+	if err != nil {
+		log.Error("Error when unmarshaling body: ", err)
+		return nil, err
+	}
+
+	return c, nil
 }
 
 func processHTTPResponse(resp *http.Response, err error, holder interface{}) error {
