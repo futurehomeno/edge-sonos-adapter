@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -47,40 +46,6 @@ func (pb *Playback) PlaybackSet(val string, id string, accessToken string) (bool
 		return false, err
 	}
 
-	if resp.StatusCode != 200 {
-		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return false, err
-	}
-
-	return true, nil
-}
-
-// GetPlaybackStatus gets playback status
-func (pb *Playback) GetPlaybackStatus(id string, accessToken string) (bool, error) {
-	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback")
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Error("Error when getting playback status: ", err)
-		return false, err
-	}
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	req.Header.Set("Content-Type", "application/json")
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetPlaybackStatus: ", err)
-		return false, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetPlaybackStatus: ", err)
-		return false, err
-	}
-	err = json.Unmarshal(body, &pb)
-	if err != nil {
-		log.Error("Error when unmarshaling body: ", err)
-		return false, err
-	}
 	if resp.StatusCode != 200 {
 		log.Error("Bad HTTP return code ", resp.StatusCode)
 		return false, err

@@ -90,11 +90,11 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 
 			// send playback status
 
-			success, err := fc.pb.GetPlaybackStatus(CorrID, fc.configs.AccessToken)
+			success, err := fc.client.GetPlaybackStatus(CorrID, fc.configs.AccessToken)
 			if err != nil {
 				log.Error(err)
 			}
-			if success {
+			if success != nil {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, fc.states.PlaybackState, nil, nil, newMsg.Payload)
 				fc.mqt.Publish(adr, msg)

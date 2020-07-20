@@ -76,13 +76,22 @@ func main() {
 			// configs.LoadFromFile()
 			for i := 0; i < len(states.Groups); i++ {
 				metadata, err := client.GetMetadata(configs.AccessToken, states.Groups[i].GroupId)
-				states.Container = metadata.Container
-				states.CurrentItem = metadata.CurrentItem
-				states.NextItem = metadata.NextItem
 				if err != nil {
 					log.Error(err)
 				}
+				pbState, err := client.GetPlaybackStatus(states.Groups[i].GroupId, configs.AccessToken)
+				if err != nil {
+					log.Error(err)
+				}
+				states.Container = metadata.Container
+				states.CurrentItem = metadata.CurrentItem
+				states.NextItem = metadata.NextItem
+				states.PlaybackState = pbState.PlaybackState
+				states.Volume = pbState.Volume
+				states.PlayModes = pbState.PlayModes
+
 				log.Debug(metadata.Container.ImageURL)
+				log.Debug(states.Container.ImageURL)
 			}
 			log.Debug("ticker")
 			states.SaveToFile()

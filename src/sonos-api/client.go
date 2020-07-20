@@ -30,6 +30,21 @@ type Client struct {
 	Container   Container   `json:"container"`
 	CurrentItem CurrentItem `json:"currentItem"`
 	NextItem    NextItem    `json:"nextItem"`
+
+	PlaybackState string `json:"playbackState"`
+
+	PlayModes struct {
+		Repeat    bool `json:"repeat"`
+		RepeatOne bool `json:"repeatOne"`
+		Shuffle   bool `json:"shuffle"`
+		Crossfade bool `json:"crossfade"`
+	}
+
+	Volume struct {
+		Volume string `json:"volume"`
+		Muted  string `json:"muted"`
+		Fixed  string `json:"fixed"`
+	}
 }
 
 type Household struct {
@@ -216,6 +231,40 @@ func (c *Client) GetMetadata(accessToken string, groupID string) (*Client, error
 	err = json.Unmarshal(body, &c)
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// GetPlaybackStatus gets playback status
+func (c *Client) GetPlaybackStatus(id string, accessToken string) (*Client, error) {
+	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback")
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Error("Error when getting playback status: ", err)
+		return nil, err
+	}
+	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	req.Header.Set("Content-Type", "application/json")
+	log.Debug("New Request: ", req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on GetPlaybackStatus: ", err)
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error when ioutil.ReadAll on GetPlaybackStatus: ", err)
+		return nil, err
+	}
+	err = json.Unmarshal(body, &c)
+	if err != nil {
+		log.Error("Error when unmarshaling body: ", err)
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		log.Error("Bad HTTP return code ", resp.StatusCode)
 		return nil, err
 	}
 
