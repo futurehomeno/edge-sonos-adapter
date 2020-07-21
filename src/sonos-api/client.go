@@ -30,6 +30,7 @@ type Client struct {
 	Container   Container   `json:"container"`
 	CurrentItem CurrentItem `json:"currentItem"`
 	NextItem    NextItem    `json:"nextItem"`
+	StreamInfo  string      `json:"streamInfo"`
 
 	PlaybackState string `json:"playbackState"`
 

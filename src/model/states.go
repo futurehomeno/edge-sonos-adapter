@@ -29,6 +29,7 @@ type States struct {
 	Container   sonos.Container   `json:"container"`
 	CurrentItem sonos.CurrentItem `json:"currentItem"`
 	NextItem    sonos.NextItem    `json:"nextItem"`
+	StreamInfo  string            `json:"streamInfo"`
 
 	PlaybackState string `json:"playbackState"`
 

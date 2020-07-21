@@ -70,41 +70,63 @@ func main() {
 
 	for {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
-		ticker := time.NewTicker(time.Duration(60) * time.Second)
+		ticker := time.NewTicker(time.Duration(15) * time.Second)
+		counter := 4
 		for ; true; <-ticker.C {
 			// states.LoadFromFile()
 			// configs.LoadFromFile()
+			counter++
 			for i := 0; i < len(states.Groups); i++ {
 				metadata, err := client.GetMetadata(configs.AccessToken, states.Groups[i].GroupId)
 				if err != nil {
 					log.Error(err)
 				}
-				pbState, err := client.GetPlaybackStatus(states.Groups[i].GroupId, configs.AccessToken)
-				if err != nil {
-					log.Error(err)
-				}
-				volume, err := client.GetVolume(states.Groups[i].GroupId, configs.AccessToken)
-				if err != nil {
-					log.Error(err)
-				}
 				states.Container = metadata.Container
-				states.CurrentItem = metadata.CurrentItem
-				states.NextItem = metadata.NextItem
-				states.PlaybackState = pbState.PlaybackState
-				states.PlayModes = pbState.PlayModes
-				states.Volume = volume.Volume
-				states.Muted = volume.Muted
-				states.Fixed = volume.Fixed
+				if states.Container.Service.Name == "Sonos Radio" {
+					states.StreamInfo = metadata.StreamInfo
+					states.Container.ImageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
+				} else if states.Container.Service.Name == "Spotify" {
+					states.CurrentItem = metadata.CurrentItem
+					states.NextItem = metadata.NextItem
+					states.StreamInfo = ""
+				}
 
 				report := map[string]interface{}{
-					"album":     states.CurrentItem.Track.Album.Name,
-					"track":     states.CurrentItem.Track.Name,
-					"artist":    states.CurrentItem.Track.Artist,
-					"image_url": states.Container.ImageURL,
+					"album":       states.CurrentItem.Track.Album.Name,
+					"track":       states.CurrentItem.Track.Name,
+					"artist":      states.CurrentItem.Track.Artist,
+					"image_url":   states.Container.ImageURL,
+					"stream_info": states.StreamInfo,
 				}
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: states.Groups[i].FimpId}
 				msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
 				mqtt.Publish(adr, msg)
+				if counter >= 4 {
+					pbState, err := client.GetPlaybackStatus(states.Groups[i].GroupId, configs.AccessToken)
+					if err != nil {
+						log.Error(err)
+					}
+					volume, err := client.GetVolume(states.Groups[i].GroupId, configs.AccessToken)
+					if err != nil {
+						log.Error(err)
+					}
+
+					states.PlaybackState = pbState.PlaybackState
+					states.PlayModes = pbState.PlayModes
+					states.Volume = volume.Volume
+					states.Muted = volume.Muted
+					states.Fixed = volume.Fixed
+
+					msg = fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, states.PlaybackState, nil, nil, nil)
+					mqtt.Publish(adr, msg)
+					msg = fimpgo.NewMessage("evt.mode.report", "media_player", fimpgo.VTypeStrMap, states.PlayModes, nil, nil, nil)
+					mqtt.Publish(adr, msg)
+					msg = fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, states.Volume, nil, nil, nil)
+					mqtt.Publish(adr, msg)
+					msg = fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeBool, states.Muted, nil, nil, nil)
+					mqtt.Publish(adr, msg)
+					counter = 0
+				}
 
 				log.Debug(metadata.Container.ImageURL)
 				log.Debug(states.Container.ImageURL)
