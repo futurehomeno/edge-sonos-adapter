@@ -40,11 +40,9 @@ type Client struct {
 		Crossfade bool `json:"crossfade"`
 	}
 
-	Volume struct {
-		Volume string `json:"volume"`
-		Muted  string `json:"muted"`
-		Fixed  string `json:"fixed"`
-	}
+	Volume int  `json:"volume"`
+	Muted  bool `json:"muted"`
+	Fixed  bool `json:"fixed"`
 }
 
 type Household struct {
@@ -256,6 +254,39 @@ func (c *Client) GetPlaybackStatus(id string, accessToken string) (*Client, erro
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("Error when ioutil.ReadAll on GetPlaybackStatus: ", err)
+		return nil, err
+	}
+	err = json.Unmarshal(body, &c)
+	if err != nil {
+		log.Error("Error when unmarshaling body: ", err)
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		log.Error("Bad HTTP return code ", resp.StatusCode)
+		return nil, err
+	}
+
+	return c, nil
+}
+
+func (c *Client) GetVolume(id string, accessToken string) (*Client, error) {
+	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/groupVolume")
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Error("Error when getting volume status: ", err)
+		return nil, err
+	}
+	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	req.Header.Set("Content-Type", "application/json")
+	log.Debug("New Request: ", req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on GetVolume: ", err)
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error when ioutil.ReadAll on GetVolume: ", err)
 		return nil, err
 	}
 	err = json.Unmarshal(body, &c)

@@ -83,12 +83,28 @@ func main() {
 				if err != nil {
 					log.Error(err)
 				}
+				volume, err := client.GetVolume(states.Groups[i].GroupId, configs.AccessToken)
+				if err != nil {
+					log.Error(err)
+				}
 				states.Container = metadata.Container
 				states.CurrentItem = metadata.CurrentItem
 				states.NextItem = metadata.NextItem
 				states.PlaybackState = pbState.PlaybackState
-				states.Volume = pbState.Volume
 				states.PlayModes = pbState.PlayModes
+				states.Volume = volume.Volume
+				states.Muted = volume.Muted
+				states.Fixed = volume.Fixed
+
+				report := map[string]interface{}{
+					"album":     states.CurrentItem.Track.Album.Name,
+					"track":     states.CurrentItem.Track.Name,
+					"artist":    states.CurrentItem.Track.Artist,
+					"image_url": states.Container.ImageURL,
+				}
+				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: states.Groups[i].FimpId}
+				msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
+				mqtt.Publish(adr, msg)
 
 				log.Debug(metadata.Container.ImageURL)
 				log.Debug(states.Container.ImageURL)
