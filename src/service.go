@@ -7,11 +7,12 @@ import (
 
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/discovery"
+	"github.com/futurehomeno/fimpgo/edgeapp"
+	"github.com/futurehomeno/fimpgo/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/model"
 	"github.com/thingsplex/sonos/router"
 	"github.com/thingsplex/sonos/sonos-api"
-	"github.com/thingsplex/sonos/utils"
 )
 
 func main() {
@@ -38,7 +39,7 @@ func main() {
 	}
 	client := sonos.Client{}
 
-	utils.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
+	edgeapp.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
 	log.Info("--------------Starting sonos----------------")
 	log.Info("Work directory : ", configs.WorkDir)
 	appLifecycle.PublishEvent(model.EventConfiguring, "main", nil)
@@ -68,13 +69,38 @@ func main() {
 		appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
 	}
 
+	hubInfo, err := utils.NewHubUtils().GetHubInfo()
+	if err == nil && hubInfo != nil {
+		client.Env = hubInfo.Environment
+	} else {
+		client.Env = utils.EnvProd
+	}
+
 	for {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
 		ticker := time.NewTicker(time.Duration(15) * time.Second)
 		counter := 4
 		for ; true; <-ticker.C {
-			// states.LoadFromFile()
-			// configs.LoadFromFile()
+			// ADD LOGIC TO HANDLE REFRESH TOKEN
+			// every 24 hours at least
+			// if configs.AccessToken != "" {
+			// 	// 	// millis := time.Now().UnixNano() / 1000000
+			// 	// 	// // if millis is more than 12 hours after last authorization, make new
+			// 	// 	// lastAuthMillis := 0123123123
+			// 	// 	// refreshMillis := lastAuthMillis + 43200000
+			// 	// 	// if millis > refreshMillis {
+			// 	// 	// 	// get new accessToken
+
+			// 	newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken, configs.MqttServerURI)
+			// 	log.Debug(configs.RefreshToken)
+			// 	log.Debug("do i get here tho?")
+			// 	if err != nil {
+			// 		log.Error(err)
+			// 	}
+			// 	log.Debug(newAccessToken)
+			// 	// 	// }
+			// }
+
 			counter++
 			for i := 0; i < len(states.Groups); i++ {
 				metadata, err := client.GetMetadata(configs.AccessToken, states.Groups[i].GroupId)
@@ -85,7 +111,7 @@ func main() {
 				if states.Container.Service.Name == "Sonos Radio" {
 					states.StreamInfo = metadata.StreamInfo
 					states.Container.ImageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
-				} else if states.Container.Service.Name == "Spotify" {
+				} else if states.Container.Service.Name == "Spotify" || states.Container.Service.Name == "Apple Music" {
 					states.CurrentItem = metadata.CurrentItem
 					states.NextItem = metadata.NextItem
 					states.StreamInfo = ""

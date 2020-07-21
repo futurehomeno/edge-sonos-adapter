@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/futurehomeno/fimpgo/edgeapp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,6 +45,7 @@ type Client struct {
 	Volume int  `json:"volume"`
 	Muted  bool `json:"muted"`
 	Fixed  bool `json:"fixed"`
+	Env    string
 }
 
 type Household struct {
@@ -137,6 +139,25 @@ type NextItem struct {
 		DurationMillis int      `json:"durationMillis"`
 		Tags           []string `json:"tags"`
 	} `json:"track"`
+}
+
+func (c *Client) RefreshAccessToken(refreshToken, mqttServerUri string) (string, error) {
+	client := edgeapp.NewFhOAuth2Client("sonos", "sonos", c.Env)
+	client.SetParameters(mqttServerUri, "", "", 0, 0, 0, 0)
+	err := client.Init()
+	if err != nil {
+		log.Error("Failed to init sync client")
+	}
+	// THIS DOES NOT WORK
+	log.Debug(refreshToken)
+	resp, err := client.ExchangeRefreshToken(refreshToken)
+	// THIS DOES NOT WORK
+	if err != nil {
+		log.Error("Can't fetch new access token", err)
+		return "", err
+	}
+	log.Debug("do i get in here6")
+	return resp.AccessToken, nil
 }
 
 func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
