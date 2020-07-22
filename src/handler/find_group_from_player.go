@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/sonos-api"
 )
 
@@ -17,11 +16,8 @@ func (id *Id) FindGroupFromPlayer(playerID string, groups []sonos.Group) (string
 	standardID := "RINCON_"
 	ID := fmt.Sprintf("%s%s", standardID, playerID)
 	for i := 0; i < len(groups); i++ {
-		log.Debug("i")
 		for p := 0; p < len(groups[i].PlayersIds); p++ {
-			log.Debug("p")
 			if ID == groups[i].PlayersIds[p] {
-				log.Debug("found")
 				return groups[i].GroupId, nil
 			}
 		}
