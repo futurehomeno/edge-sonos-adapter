@@ -1,8 +1,8 @@
 Package: sonos
-Version: 0.0.3
+Version: 0.0.4
 Replaces: sonos
 Section: non-free/misc
 Priority: optional
 Architecture: armhf
-Maintainer: your namae <dev@your-app.com>
-Description: . futurehome app  
+Maintainer: Markus Haldorsen <markus@futurehome.no>
+Description: Sonos adapter for futurehome system
