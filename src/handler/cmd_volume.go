@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/thingsplex/sonos/model"
 
@@ -56,7 +57,7 @@ func (vol *Volume) VolumeSet(val int64, id string, accessToken string) (bool, er
 	}
 	if resp.StatusCode != 200 {
 		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return false, err
+		return false, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
 	}
 
 	return true, nil

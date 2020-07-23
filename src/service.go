@@ -81,25 +81,22 @@ func main() {
 		ticker := time.NewTicker(time.Duration(15) * time.Second)
 		counter := 4
 		for ; true; <-ticker.C {
-			// ADD LOGIC TO HANDLE REFRESH TOKEN
-			// every 24 hours at least
-			// if configs.AccessToken != "" {
-			// 	// 	// millis := time.Now().UnixNano() / 1000000
-			// 	// 	// // if millis is more than 12 hours after last authorization, make new
-			// 	// 	// lastAuthMillis := 0123123123
-			// 	// 	// refreshMillis := lastAuthMillis + 43200000
-			// 	// 	// if millis > refreshMillis {
-			// 	// 	// 	// get new accessToken
-
-			// 	newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken, configs.MqttServerURI)
-			// 	log.Debug(configs.RefreshToken)
-			// 	log.Debug("do i get here tho?")
-			// 	if err != nil {
-			// 		log.Error(err)
-			// 	}
-			// 	log.Debug(newAccessToken)
-			// 	// 	// }
-			// }
+			if configs.AccessToken != "" && configs.AccessToken != "access_token" {
+				// ADD LOGIC TO HANDLE REFRESH TOKEN
+				// every 24 hours at least
+				// if millis is more than 12 hours after last authorization, make new
+				millis := time.Now().UnixNano() / 1000000
+				refreshMillis := configs.LastAuthMillis + 43200000
+				if millis > refreshMillis {
+					newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken, configs.MqttServerURI)
+					log.Debug(configs.RefreshToken)
+					if err != nil {
+						log.Error(err)
+					}
+					configs.AccessToken = newAccessToken
+					configs.LastAuthMillis = millis
+				}
+			}
 
 			counter++
 			for i := 0; i < len(states.Groups); i++ {
@@ -128,11 +125,11 @@ func main() {
 					if counter >= 4 {
 						pbState, err := client.GetPlaybackStatus(states.Groups[i].GroupId, configs.AccessToken)
 						if err != nil {
-							log.Error(err)
+							break
 						}
 						volume, err := client.GetVolume(states.Groups[i].GroupId, configs.AccessToken)
 						if err != nil {
-							log.Error(err)
+							break
 						}
 
 						states.PlaybackState = pbState.PlaybackState

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/thingsplex/sonos/sonos-api"
 
@@ -144,7 +145,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			// get int from 0-100 representing new volume in %
 			val, err := newMsg.Payload.GetIntValue()
 			if err != nil {
-				log.Error("Volume error")
+				log.Error("Volume error", err)
 			}
 
 			success, err := fc.vol.VolumeSet(val, CorrID, fc.configs.AccessToken)
@@ -171,7 +172,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			// get bool value
 			val, err := newMsg.Payload.GetBoolValue()
 			if err != nil {
-				log.Error("Volume error")
+				log.Error("Volume error", err)
 			}
 
 			success, err := fc.mute.MuteSet(val, CorrID, fc.configs.AccessToken)
@@ -207,6 +208,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			if authReq.AccessToken != "" && authReq.RefreshToken != "" {
 				fc.configs.AccessToken = authReq.AccessToken
+				fc.configs.LastAuthMillis = time.Now().UnixNano() / 1000000
 				fc.configs.RefreshToken = authReq.RefreshToken
 				fc.configs.ExpiresIn = authReq.ExpiresIn
 				fc.appLifecycle.SetAuthState(model.AuthStateAuthenticated)

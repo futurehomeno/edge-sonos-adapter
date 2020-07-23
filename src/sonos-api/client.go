@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/futurehomeno/fimpgo/edgeapp"
@@ -148,15 +149,12 @@ func (c *Client) RefreshAccessToken(refreshToken, mqttServerUri string) (string,
 	if err != nil {
 		log.Error("Failed to init sync client")
 	}
-	// THIS DOES NOT WORK
 	log.Debug(refreshToken)
 	resp, err := client.ExchangeRefreshToken(refreshToken)
-	// THIS DOES NOT WORK
 	if err != nil {
 		log.Error("Can't fetch new access token", err)
 		return "", err
 	}
-	log.Debug("do i get in here6")
 	return resp.AccessToken, nil
 }
 
@@ -285,7 +283,7 @@ func (c *Client) GetPlaybackStatus(id string, accessToken string) (*Client, erro
 	}
 	if resp.StatusCode != 200 {
 		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return nil, err
+		return nil, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
 	}
 
 	return c, nil
@@ -318,7 +316,7 @@ func (c *Client) GetVolume(id string, accessToken string) (*Client, error) {
 	}
 	if resp.StatusCode != 200 {
 		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return nil, err
+		return nil, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
 	}
 
 	return c, nil

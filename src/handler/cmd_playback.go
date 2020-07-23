@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/thingsplex/sonos/model"
 
@@ -48,7 +49,7 @@ func (pb *Playback) PlaybackSet(val string, id string, accessToken string) (bool
 
 	if resp.StatusCode != 200 {
 		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return false, err
+		return false, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
 	}
 
 	return true, nil
@@ -90,7 +91,7 @@ func (pb *Playback) ModeSet(val map[string]string, id string, accessToken string
 	}
 	if resp.StatusCode != 200 {
 		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return false, err
+		return false, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
 	}
 
 	return true, nil

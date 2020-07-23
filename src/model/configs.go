@@ -33,6 +33,7 @@ type Configs struct {
 	RefreshToken       string        `json:"refresh_token"`
 	ExpiresIn          int           `json:"expires_in"`
 	WantedHouseholds   []interface{} `json:"households"`
+	LastAuthMillis     int64
 }
 
 func NewConfigs(workDir string) *Configs {

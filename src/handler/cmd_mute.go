@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/model"
@@ -55,7 +56,7 @@ func (mute *Mute) MuteSet(val bool, id string, accessToken string) (bool, error)
 	}
 	if resp.StatusCode != 200 {
 		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return false, err
+		return false, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
 	}
 
 	return true, nil
