@@ -5,4 +5,4 @@ Section: non-free/misc
 Priority: optional
 Architecture: armhf
 Maintainer: Markus Haldorsen <markus@futurehome.no>
-Description: Sonos adapter for futurehome system
+Description: Sonos adapter for futurehome system  

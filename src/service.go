@@ -95,6 +95,7 @@ func main() {
 					}
 					configs.AccessToken = newAccessToken
 					configs.LastAuthMillis = millis
+					configs.SaveToFile()
 				}
 			}
 
