@@ -320,6 +320,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				var val model.Value
 				val.Default = "You need to login first"
 				manifest.Configs[0].Val = val
+				manifest.Configs[0].UI.Select = nil
 			}
 
 			msg := fimpgo.NewMessage("evt.app.manifest_report", model.ServiceName, fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
