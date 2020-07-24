@@ -8,7 +8,6 @@ import (
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/discovery"
 	"github.com/futurehomeno/fimpgo/edgeapp"
-	"github.com/futurehomeno/fimpgo/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/model"
 	"github.com/thingsplex/sonos/router"
@@ -67,13 +66,6 @@ func main() {
 		appLifecycle.SetAuthState(model.AuthStateAuthenticated)
 	} else {
 		appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
-	}
-
-	hubInfo, err := utils.NewHubUtils().GetHubInfo()
-	if err == nil && hubInfo != nil {
-		client.Env = hubInfo.Environment
-	} else {
-		client.Env = utils.EnvProd
 	}
 
 	for {

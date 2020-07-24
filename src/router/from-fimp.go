@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/thingsplex/sonos/handler"
 
 	"github.com/futurehomeno/fimpgo"
+	"github.com/futurehomeno/fimpgo/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/model"
 )
@@ -55,6 +55,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 	log.Debug("New fimp msg")
 	addr := strings.Replace(newMsg.Addr.ServiceAddress, "_0", "", 1)
 	ns := model.NetworkService{}
+	client := sonos.Client{}
 	switch newMsg.Payload.Service {
 
 	case "media_player":
@@ -274,16 +275,53 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				log.Error("Failed to load manifest file .Error :", err.Error())
 				return
 			}
+			hubInfo, err := utils.NewHubUtils().GetHubInfo()
+
+			if err == nil && hubInfo != nil {
+				client.Env = hubInfo.Environment
+			} else {
+				client.Env = utils.EnvProd
+			}
+
+			if client.Env == "beta" {
+				manifest.Auth.RedirectURL = "https://app-static-beta.futurehome.io/playground_oauth_callback"
+				manifest.Auth.AuthEndpoint = "https://partners-beta.futurehome.io/api/edge/proxy/auth-code"
+			} else {
+				manifest.Auth.RedirectURL = "https://app-static.futurehome.io/playground_oauth_callback"
+				manifest.Auth.AuthEndpoint = "https://partners.futurehome.io/api/edge/proxy/auth-code"
+			}
 			if mode == "manifest_state" {
 				manifest.AppState = *fc.appLifecycle.GetAllStates()
 				manifest.ConfigState = fc.configs
 			}
-			var householdSelect []interface{}
-			for i := 0; i < len(fc.states.Households); i++ {
-				label := fmt.Sprintf("%s%s", "System ", strconv.Itoa(i))
-				householdSelect = append(householdSelect, map[string]interface{}{"val": fc.states.Households[i].ID, "label": map[string]interface{}{"en": label}})
+			if fc.configs.IsAuthenticated() {
+				var householdSelect []interface{}
+				manifest.Configs[0].ValT = "str_map"
+				manifest.Configs[0].UI.Type = "list_checkbox"
+				for i := 0; i < len(fc.states.Households); i++ {
+					HouseholdID := fmt.Sprintf("%v", fc.states.Households[i].ID)
+					_, players, err := fc.client.GetGroupsAndPlayers(fc.configs.AccessToken, HouseholdID)
+					if err != nil {
+						log.Error("error: ", err)
+					}
+					numPlayers := len(players)
+					if numPlayers > 1 {
+						label := fmt.Sprintf("System with %d devices", numPlayers)
+						householdSelect = append(householdSelect, map[string]interface{}{"val": fc.states.Households[i].ID, "label": map[string]interface{}{"en": label}})
+					} else {
+						label := fmt.Sprintf("System with %d device", numPlayers)
+						householdSelect = append(householdSelect, map[string]interface{}{"val": fc.states.Households[i].ID, "label": map[string]interface{}{"en": label}})
+					}
+				}
+				manifest.Configs[0].UI.Select = householdSelect
+			} else {
+				manifest.Configs[0].ValT = "string"
+				manifest.Configs[0].UI.Type = "input_readonly"
+				var val model.Value
+				val.Default = "You need to login first"
+				manifest.Configs[0].Val = val
 			}
-			manifest.Configs[0].UI.Select = householdSelect
+
 			msg := fimpgo.NewMessage("evt.app.manifest_report", model.ServiceName, fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				// if response topic is not set , sending back to default application event topic
