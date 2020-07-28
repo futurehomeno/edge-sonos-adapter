@@ -80,8 +80,7 @@ func main() {
 				millis := time.Now().UnixNano() / 1000000
 				refreshMillis := configs.LastAuthMillis + 43200000
 				if millis > refreshMillis {
-					newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken, configs.MqttServerURI)
-					log.Debug(configs.RefreshToken)
+					newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken, configs.MqttServerURI, configs.Env)
 					if err != nil {
 						log.Error(err)
 					}

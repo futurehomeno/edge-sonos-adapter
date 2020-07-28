@@ -1,5 +1,5 @@
 Package: sonos
-Version: 0.0.4
+Version: 0.1.2
 Replaces: sonos
 Section: non-free/misc
 Priority: optional

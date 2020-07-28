@@ -46,7 +46,6 @@ type Client struct {
 	Volume int  `json:"volume"`
 	Muted  bool `json:"muted"`
 	Fixed  bool `json:"fixed"`
-	Env    string
 }
 
 type Household struct {
@@ -142,8 +141,8 @@ type NextItem struct {
 	} `json:"track"`
 }
 
-func (c *Client) RefreshAccessToken(refreshToken, mqttServerUri string) (string, error) {
-	client := edgeapp.NewFhOAuth2Client("sonos", "sonos", c.Env)
+func (c *Client) RefreshAccessToken(refreshToken string, mqttServerUri string, env string) (string, error) {
+	client := edgeapp.NewFhOAuth2Client("sonos", "sonos", env)
 	client.SetParameters(mqttServerUri, "", "", 0, 0, 0, 0)
 	err := client.Init()
 	if err != nil {

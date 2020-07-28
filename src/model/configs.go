@@ -34,6 +34,7 @@ type Configs struct {
 	ExpiresIn          int           `json:"expires_in"`
 	WantedHouseholds   []interface{} `json:"households"`
 	LastAuthMillis     int64
+	Env                string
 }
 
 func NewConfigs(workDir string) *Configs {

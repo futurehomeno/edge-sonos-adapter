@@ -55,7 +55,6 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 	log.Debug("New fimp msg")
 	addr := strings.Replace(newMsg.Addr.ServiceAddress, "_0", "", 1)
 	ns := model.NetworkService{}
-	client := sonos.Client{}
 	switch newMsg.Payload.Service {
 
 	case "media_player":
@@ -278,12 +277,12 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			hubInfo, err := utils.NewHubUtils().GetHubInfo()
 
 			if err == nil && hubInfo != nil {
-				client.Env = hubInfo.Environment
+				fc.configs.Env = hubInfo.Environment
 			} else {
-				client.Env = utils.EnvProd
+				fc.configs.Env = utils.EnvProd
 			}
 
-			if client.Env == "beta" {
+			if fc.configs.Env == "beta" {
 				manifest.Auth.RedirectURL = "https://app-static-beta.futurehome.io/playground_oauth_callback"
 				manifest.Auth.AuthEndpoint = "https://partners-beta.futurehome.io/api/edge/proxy/auth-code"
 			} else {
