@@ -83,9 +83,10 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if pbStatus.PlaybackState == "PLAYBACK_STATE_BUFFERING" {
 				pbStatus.PlaybackState = "PLAYBACK_STATE_PLAYING"
 			}
+			val = fc.client.SetCorrectValue(pbStatus.PlaybackState)
 			if success {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
-				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, pbStatus.PlaybackState, nil, nil, newMsg.Payload)
+				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, val, nil, nil, newMsg.Payload)
 				fc.mqt.Publish(adr, msg)
 			}
 
@@ -98,13 +99,17 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 
 			// send playback status
 
-			success, err := fc.client.GetPlaybackStatus(CorrID, fc.configs.AccessToken)
+			pbStatus, err := fc.client.GetPlaybackStatus(CorrID, fc.configs.AccessToken)
 			if err != nil {
 				log.Error(err)
 			}
-			if success != nil {
+			if pbStatus.PlaybackState == "PLAYBACK_STATE_BUFFERING" {
+				pbStatus.PlaybackState = "PLAYBACK_STATE_PLAYING"
+			}
+			val := fc.client.SetCorrectValue(pbStatus.PlaybackState)
+			if pbStatus != nil {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
-				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, fc.states.PlaybackState, nil, nil, newMsg.Payload)
+				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, val, nil, nil, newMsg.Payload)
 				fc.mqt.Publish(adr, msg)
 			}
 

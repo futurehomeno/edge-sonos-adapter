@@ -130,7 +130,8 @@ func main() {
 						states.Muted = volume.Muted
 						states.Fixed = volume.Fixed
 
-						msg = fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, states.PlaybackState, nil, nil, nil)
+						pbStateValue := client.SetCorrectValue(states.PlaybackState)
+						msg = fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, pbStateValue, nil, nil, nil)
 						mqtt.Publish(adr, msg)
 						msg = fimpgo.NewMessage("evt.mode.report", "media_player", fimpgo.VTypeStrMap, states.PlayModes, nil, nil, nil)
 						mqtt.Publish(adr, msg)

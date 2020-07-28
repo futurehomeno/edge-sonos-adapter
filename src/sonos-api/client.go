@@ -340,3 +340,13 @@ func processHTTPResponse(resp *http.Response, err error, holder interface{}) err
 	}
 	return nil
 }
+
+func (c *Client) SetCorrectValue(val string) string {
+	log.Debug(val)
+	if val == "PLAYBACK_STATE_PLAYING" {
+		return "play"
+	} else if val == "PLAYBACK_STATE_PAUSED" {
+		return "pause"
+	}
+	return "unknown"
+}
