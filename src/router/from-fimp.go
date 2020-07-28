@@ -239,6 +239,8 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			// exclude all players
 			// respond to wanted topic with necessary value(s)
 			fc.configs.AccessToken = ""
+			fc.configs.WantedHouseholds = nil
+			fc.configs.LastAuthMillis = 0
 			fc.appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
 			fc.appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
 			fc.appLifecycle.SetConnectionState(model.ConnStateDisconnected)
@@ -324,7 +326,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				var val model.Value
 				val.Default = "You need to login first"
 				manifest.Configs[0].Val = val
-				manifest.Configs[0].UI.Select = nil
+				// manifest.Configs[0].UI.Select = nil
 			}
 
 			msg := fimpgo.NewMessage("evt.app.manifest_report", model.ServiceName, fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
