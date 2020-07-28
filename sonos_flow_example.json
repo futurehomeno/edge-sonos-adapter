@@ -1,0 +1,130 @@
+{
+    "Id": "D7spKRB6EBGPilz",
+    "ClassId": "D7spKRB6EBGPilz",
+    "Author": "",
+    "Version": 0,
+    "CreatedAt": "2020-07-28T13:23:06.661122011+02:00",
+    "UpdatedAt": "2020-07-28T13:56:10.614479091+02:00",
+    "Name": "Sonos test flow",
+    "Group": "sonos",
+    "Description": "",
+    "Nodes": [
+      {
+        "Id": "1",
+        "Type": "trigger",
+        "Label": "motion sensor",
+        "SuccessTransition": "2",
+        "TimeoutTransition": "",
+        "ErrorTransition": "",
+        "Address": "pt:j1/mt:evt/rt:dev/rn:zw/ad:1/sv:sensor_presence/ad:7_0",
+        "Service": "sensor_presence",
+        "ServiceInterface": "evt.presence.report",
+        "Config": {
+          "InputVariableType": "",
+          "IsValueFilterEnabled": true,
+          "LookupServiceNameAndLocation": false,
+          "PropFilterName": "",
+          "PropFilterValue": "",
+          "RegisterAsVirtualService": false,
+          "Timeout": 0,
+          "ValueFilter": {
+            "Value": true,
+            "ValueType": "bool"
+          },
+          "ValueJPath": "",
+          "ValueJPathResultType": "",
+          "VirtualServiceGroup": "",
+          "VirtualServiceProps": null
+        },
+        "Ui": {
+          "nodeType": "",
+          "x": 150,
+          "y": 216
+        }
+      },
+      {
+        "Id": "2",
+        "Type": "action",
+        "Label": "Play",
+        "SuccessTransition": "",
+        "TimeoutTransition": "",
+        "ErrorTransition": "",
+        "Address": "pt:j1/mt:cmd/rt:dev/rn:sonos/ad:1/sv:media_player/ad:7828CAD39E4201400",
+        "Service": "media_player",
+        "ServiceInterface": "cmd.playback.set",
+        "Config": {
+          "DefaultValue": {
+            "Value": "play",
+            "ValueType": "string"
+          },
+          "IsVariableGlobal": false,
+          "Props": {},
+          "RegisterAsVirtualService": false,
+          "ResponseToTopic": "",
+          "VariableName": "",
+          "VirtualServiceGroup": "",
+          "VirtualServiceProps": {}
+        },
+        "Ui": {
+          "nodeType": "",
+          "x": 162,
+          "y": 469
+        }
+      },
+      {
+        "Id": "3",
+        "Type": "vinc_trigger",
+        "Label": "Away mode",
+        "SuccessTransition": "4",
+        "TimeoutTransition": "",
+        "ErrorTransition": "",
+        "Address": "",
+        "Service": "",
+        "ServiceInterface": "",
+        "Config": {
+          "EventType": "mode",
+          "IsValueFilterEnabled": true,
+          "Timeout": 0,
+          "ValueFilter": "away"
+        },
+        "Ui": {
+          "nodeType": "",
+          "x": 383,
+          "y": 207
+        }
+      },
+      {
+        "Id": "4",
+        "Type": "action",
+        "Label": "Pause",
+        "SuccessTransition": "",
+        "TimeoutTransition": "",
+        "ErrorTransition": "",
+        "Address": "pt:j1/mt:cmd/rt:dev/rn:sonos/ad:1/sv:media_player/ad:7828CAD39E4201400",
+        "Service": "media_player",
+        "ServiceInterface": "cmd.playback.set",
+        "Config": {
+          "DefaultValue": {
+            "Value": "pause",
+            "ValueType": "string"
+          },
+          "IsVariableGlobal": false,
+          "Props": {},
+          "RegisterAsVirtualService": false,
+          "ResponseToTopic": "",
+          "VariableName": "",
+          "VirtualServiceGroup": "",
+          "VirtualServiceProps": {}
+        },
+        "Ui": {
+          "nodeType": "",
+          "x": 385,
+          "y": 474
+        }
+      }
+    ],
+    "Settings": null,
+    "IsDisabled": false,
+    "IsDefault": false,
+    "ParallelExecution": "parallel"
+  }
