@@ -95,20 +95,26 @@ func main() {
 				metadata, err := client.GetMetadata(configs.AccessToken, states.Groups[i].GroupId)
 				if err == nil {
 					states.Container = metadata.Container
+					states.CurrentItem = metadata.CurrentItem
+					states.NextItem = metadata.NextItem
 					if states.Container.Service.Name == "Sonos Radio" {
 						states.StreamInfo = metadata.StreamInfo
 						states.Container.ImageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
-					} else if states.Container.Service.Name == "Spotify" || states.Container.Service.Name == "Apple Music" {
-						states.CurrentItem = metadata.CurrentItem
-						states.NextItem = metadata.NextItem
+					} else {
 						states.StreamInfo = ""
 					}
+
+					imageURL := states.Container.ImageURL
+					if imageURL == "" {
+						imageURL = states.CurrentItem.Track.ImageURL
+					}
+					log.Debug(states.CurrentItem)
 
 					report := map[string]interface{}{
 						"album":       states.CurrentItem.Track.Album.Name,
 						"track":       states.CurrentItem.Track.Name,
 						"artist":      states.CurrentItem.Track.Artist,
-						"image_url":   states.Container.ImageURL,
+						"image_url":   imageURL,
 						"stream_info": states.StreamInfo,
 					}
 					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: states.Groups[i].FimpId}
@@ -141,8 +147,6 @@ func main() {
 						mqtt.Publish(adr, msg)
 						counter = 0
 					}
-					log.Debug(metadata.Container.ImageURL)
-					log.Debug(states.Container.ImageURL)
 				} else {
 					log.Error("This is the one in service.go", err)
 				}
