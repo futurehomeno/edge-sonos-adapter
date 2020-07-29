@@ -89,6 +89,13 @@ func main() {
 					configs.SaveToFile()
 				}
 			}
+			for i := 0; i < len(configs.WantedHouseholds); i++ {
+				HouseholdID := fmt.Sprintf("%v", configs.WantedHouseholds[i])
+				states.Groups, states.Players, err = client.GetGroupsAndPlayers(configs.AccessToken, HouseholdID)
+				if err != nil {
+					log.Error("error")
+				}
+			}
 
 			counter++
 			for i := 0; i < len(states.Groups); i++ {
@@ -120,6 +127,7 @@ func main() {
 					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: states.Groups[i].FimpId}
 					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
 					mqtt.Publish(adr, msg)
+
 					if counter >= 4 {
 						pbState, err := client.GetPlaybackStatus(states.Groups[i].GroupId, configs.AccessToken)
 						if err != nil {
@@ -145,6 +153,7 @@ func main() {
 						mqtt.Publish(adr, msg)
 						msg = fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeBool, states.Muted, nil, nil, nil)
 						mqtt.Publish(adr, msg)
+
 						counter = 0
 					}
 				} else {
