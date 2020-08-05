@@ -147,7 +147,7 @@ func main() {
 						pbStateValue := client.SetCorrectValue(states.PlaybackState)
 						msg = fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, pbStateValue, nil, nil, nil)
 						mqtt.Publish(adr, msg)
-						msg = fimpgo.NewMessage("evt.mode.report", "media_player", fimpgo.VTypeStrMap, states.PlayModes, nil, nil, nil)
+						msg = fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, states.PlayModes, nil, nil, nil)
 						mqtt.Publish(adr, msg)
 						msg = fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, states.Volume, nil, nil, nil)
 						mqtt.Publish(adr, msg)

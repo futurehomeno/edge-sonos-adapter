@@ -56,10 +56,9 @@ func (pb *Playback) PlaybackSet(val string, id string, accessToken string) (bool
 }
 
 // ModeSet sets new mode
-func (pb *Playback) ModeSet(val map[string]string, id string, accessToken string) (bool, error) {
+func (pb *Playback) ModeSet(val map[string]bool, id string, accessToken string) (bool, error) {
 	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback/playMode")
 	// if one of the modes is repeat_one, change to repeatOne
-
 	log.Debug("THIS IS THE VALUE BEFORE: ", val)
 	if _, ok := val["repeat_one"]; ok {
 		val["repeatOne"] = val["repeat_one"]

@@ -36,17 +36,17 @@ func (ns *NetworkService) MakeInclusionReport(Player sonos.Player) fimptype.Thin
 		Version:   "1",
 	}, {
 		Type:      "in",
-		MsgType:   "cmd.mode.set",
+		MsgType:   "cmd.playbackmode.set",
 		ValueType: "str_map",
 		Version:   "1",
 	}, {
 		Type:      "in",
-		MsgType:   "cmd.mode.get_report",
+		MsgType:   "cmd.playbackmode.get_report",
 		ValueType: "null",
 		Version:   "1",
 	}, {
 		Type:      "out",
-		MsgType:   "evt.mode.report",
+		MsgType:   "evt.playbackmode.report",
 		ValueType: "str_map",
 		Version:   "1",
 	}, {
