@@ -21,7 +21,6 @@ type Playback struct {
 // PlaybackSet sends request to Sonos to play, pause or skip
 func (pb *Playback) PlaybackSet(val string, id string, accessToken string) (bool, error) {
 	// change toggle_play_pause to togglePlayPause, next_track to skipToNextTrack and previous_track to skipToPreviousTrack
-	log.Debug("THIS IS THE VALUE BEFORE: ", val)
 	if val == "toggle_play_pause" {
 		val = "togglePlayPause"
 	} else if val == "next_track" {
@@ -29,7 +28,6 @@ func (pb *Playback) PlaybackSet(val string, id string, accessToken string) (bool
 	} else if val == "previous_track" {
 		val = "skipToPreviousTrack"
 	}
-	log.Debug("THIS IS THE VALUE AFTER: ", val)
 
 	url := fmt.Sprintf("%s%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback/", val)
 
@@ -59,12 +57,12 @@ func (pb *Playback) PlaybackSet(val string, id string, accessToken string) (bool
 func (pb *Playback) ModeSet(val map[string]bool, id string, accessToken string) (bool, error) {
 	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback/playMode")
 	// if one of the modes is repeat_one, change to repeatOne
-	log.Debug("THIS IS THE VALUE BEFORE: ", val)
+
 	if _, ok := val["repeat_one"]; ok {
 		val["repeatOne"] = val["repeat_one"]
 		delete(val, "repeat_one")
 	}
-	log.Debug("THIS IS THE VALUE AFTER: ", val)
+
 
 	mode := map[string]interface{}{
 		"playModes": val,

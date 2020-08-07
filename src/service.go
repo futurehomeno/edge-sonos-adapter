@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"time"
+	"reflect"
 
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/discovery"
@@ -71,7 +72,11 @@ func main() {
 	for {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
 		ticker := time.NewTicker(time.Duration(15) * time.Second)
-		counter := 4
+		var oldReport map[string]interface{}
+		var oldPbStateValue string
+		var oldPlayModes struct{ Repeat bool "json:\"repeat\""; RepeatOne bool "json:\"repeatOne\""; Shuffle bool "json:\"shuffle\""; Crossfade bool "json:\"crossfade\"" }
+		var oldVolume int
+		var oldMuted bool
 		for ; true; <-ticker.C {
 			if configs.AccessToken != "" && configs.AccessToken != "access_token" {
 				// ADD LOGIC TO HANDLE REFRESH TOKEN
@@ -97,7 +102,6 @@ func main() {
 				}
 			}
 
-			counter++
 			for i := 0; i < len(states.Groups); i++ {
 				metadata, err := client.GetMetadata(configs.AccessToken, states.Groups[i].GroupId)
 				if err == nil {
@@ -115,7 +119,6 @@ func main() {
 					if imageURL == "" {
 						imageURL = states.CurrentItem.Track.ImageURL
 					}
-					log.Debug(states.CurrentItem)
 
 					report := map[string]interface{}{
 						"album":       states.CurrentItem.Track.Album.Name,
@@ -125,37 +128,56 @@ func main() {
 						"stream_info": states.StreamInfo,
 					}
 					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: states.Groups[i].FimpId}
-					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
-					mqtt.Publish(adr, msg)
-
-					if counter >= 4 {
-						pbState, err := client.GetPlaybackStatus(states.Groups[i].GroupId, configs.AccessToken)
-						if err != nil {
-							break
-						}
-						volume, err := client.GetVolume(states.Groups[i].GroupId, configs.AccessToken)
-						if err != nil {
-							break
-						}
-
-						states.PlaybackState = pbState.PlaybackState
-						states.PlayModes = pbState.PlayModes
-						states.Volume = volume.Volume
-						states.Muted = volume.Muted
-						states.Fixed = volume.Fixed
-
-						pbStateValue := client.SetCorrectValue(states.PlaybackState)
-						msg = fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, pbStateValue, nil, nil, nil)
+					oldReportEqualsNewReport := reflect.DeepEqual(oldReport, report)
+					if !oldReportEqualsNewReport {
+						msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
 						mqtt.Publish(adr, msg)
-						msg = fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, states.PlayModes, nil, nil, nil)
-						mqtt.Publish(adr, msg)
-						msg = fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, states.Volume, nil, nil, nil)
-						mqtt.Publish(adr, msg)
-						msg = fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeBool, states.Muted, nil, nil, nil)
-						mqtt.Publish(adr, msg)
-
-						counter = 0
+						oldReport = report
+						log.Info("New metadata message sent to fimp")
 					}
+
+					pbState, err := client.GetPlaybackStatus(states.Groups[i].GroupId, configs.AccessToken)
+					if err != nil {
+						break
+					}
+					volume, err := client.GetVolume(states.Groups[i].GroupId, configs.AccessToken)
+					if err != nil {
+						break
+					}
+
+					states.PlaybackState = pbState.PlaybackState
+					states.PlayModes = pbState.PlayModes
+					states.Volume = volume.Volume
+					states.Muted = volume.Muted
+					states.Fixed = volume.Fixed
+
+					pbStateValue := client.SetCorrectValue(states.PlaybackState)
+					if oldPbStateValue != pbStateValue {
+						msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, pbStateValue, nil, nil, nil)
+						mqtt.Publish(adr, msg)
+						oldPbStateValue = pbStateValue
+						log.Info("New playback.report sent to fimp")
+					}
+					oldPlayModesEqualsNewPlaymodes := reflect.DeepEqual(oldPlayModes, states.PlayModes)
+					if !oldPlayModesEqualsNewPlaymodes {
+						msg := fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, states.PlayModes, nil, nil, nil)
+						mqtt.Publish(adr, msg)
+						oldPlayModes = states.PlayModes
+						log.Info("New playbackmode.report sent to fimp")
+					}
+					if oldVolume != states.Volume {
+						msg := fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, states.Volume, nil, nil, nil)
+						mqtt.Publish(adr, msg)
+						oldVolume = states.Volume
+						log.Info("New volume.report sent to fimp")
+					}
+					if oldMuted != states.Muted {
+						msg := fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeBool, states.Muted, nil, nil, nil)
+						mqtt.Publish(adr, msg)
+						oldMuted = states.Muted
+						log.Info("New mute.report sent to fimp")
+					}
+
 				} else {
 					log.Error("This is the one in service.go", err)
 				}

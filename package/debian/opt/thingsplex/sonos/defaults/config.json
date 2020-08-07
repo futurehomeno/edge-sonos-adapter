@@ -6,7 +6,7 @@
   "mqtt_server_password":"",
   "work_dir": "/opt/thingsplex/sonos",
   "log_file": "/var/log/thingsplex/sonos/sonos.log",
-  "log_level": "debug",
+  "log_level": "info",
   "log_format": "text",
   "access_token": "access_token",
   "refresh_token": "refresh_token",
