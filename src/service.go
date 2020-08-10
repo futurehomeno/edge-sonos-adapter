@@ -159,8 +159,14 @@ func main() {
 						log.Info("New playback.report sent to fimp")
 					}
 					oldPlayModesEqualsNewPlaymodes := reflect.DeepEqual(oldPlayModes, states.PlayModes)
+					playmodes := map[string]bool{
+						"repeat": states.PlayModes.Repeat,
+						"repeat_one": states.PlayModes.RepeatOne,
+						"shuffle": states.PlayModes.Shuffle,
+						"crossfade": states.PlayModes.Crossfade,
+					}
 					if !oldPlayModesEqualsNewPlaymodes {
-						msg := fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, states.PlayModes, nil, nil, nil)
+						msg := fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, playmodes, nil, nil, nil)
 						mqtt.Publish(adr, msg)
 						oldPlayModes = states.PlayModes
 						log.Info("New playbackmode.report sent to fimp")
