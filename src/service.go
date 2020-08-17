@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"time"
 	"reflect"
+	"time"
 
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/discovery"
@@ -74,7 +74,12 @@ func main() {
 		ticker := time.NewTicker(time.Duration(15) * time.Second)
 		var oldReport map[string]interface{}
 		var oldPbStateValue string
-		var oldPlayModes struct{ Repeat bool "json:\"repeat\""; RepeatOne bool "json:\"repeatOne\""; Shuffle bool "json:\"shuffle\""; Crossfade bool "json:\"crossfade\"" }
+		var oldPlayModes struct {
+			Repeat    bool "json:\"repeat\""
+			RepeatOne bool "json:\"repeatOne\""
+			Shuffle   bool "json:\"shuffle\""
+			Crossfade bool "json:\"crossfade\""
+		}
 		var oldVolume int
 		var oldMuted bool
 		for ; true; <-ticker.C {
@@ -85,6 +90,7 @@ func main() {
 				millis := time.Now().UnixNano() / 1000000
 				refreshMillis := configs.LastAuthMillis + 43200000
 				if millis > refreshMillis {
+					log.Info("TRYING TO REFRESH TOKEN")
 					newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken, configs.MqttServerURI, configs.Env)
 					if err != nil {
 						log.Error(err)
@@ -160,11 +166,12 @@ func main() {
 					}
 					oldPlayModesEqualsNewPlaymodes := reflect.DeepEqual(oldPlayModes, states.PlayModes)
 					playmodes := map[string]bool{
-						"repeat": states.PlayModes.Repeat,
+						"repeat":     states.PlayModes.Repeat,
 						"repeat_one": states.PlayModes.RepeatOne,
-						"shuffle": states.PlayModes.Shuffle,
-						"crossfade": states.PlayModes.Crossfade,
+						"shuffle":    states.PlayModes.Shuffle,
+						"crossfade":  states.PlayModes.Crossfade,
 					}
+
 					if !oldPlayModesEqualsNewPlaymodes {
 						msg := fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, playmodes, nil, nil, nil)
 						mqtt.Publish(adr, msg)

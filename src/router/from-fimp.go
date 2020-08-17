@@ -28,6 +28,7 @@ type FromFimpRouter struct {
 	client       *sonos.Client
 	id           *handler.Id
 	mute         *handler.Mute
+	fv           *sonos.Favorite
 }
 
 func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs, states *model.States) *FromFimpRouter {
@@ -138,10 +139,10 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			if success {
 				playmodes := map[string]bool{
-					"repeat": pbStatus.PlayModes.Repeat,
+					"repeat":     pbStatus.PlayModes.Repeat,
 					"repeat_one": pbStatus.PlayModes.RepeatOne,
-					"shuffle": pbStatus.PlayModes.Shuffle,
-					"crossfade": pbStatus.PlayModes.Crossfade,
+					"shuffle":    pbStatus.PlayModes.Shuffle,
+					"crossfade":  pbStatus.PlayModes.Crossfade,
 				}
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, playmodes, nil, nil, newMsg.Payload)
@@ -149,7 +150,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			log.Info("New playbackmode.report, ", pbStatus.PlayModes)
 
-		case "cmd.playbackmode.get_report": 
+		case "cmd.playbackmode.get_report":
 			// find groupId from addr(playerId)
 			CorrID, err := fc.id.FindGroupFromPlayer(addr, fc.states.Groups)
 			if err != nil {
@@ -192,8 +193,8 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				fc.mqt.Publish(adr, msg)
 			}
 			log.Info("New volume set, ", val)
-		
-		case "cmd.volume.get_report": 
+
+		case "cmd.volume.get_report":
 			// find groupId from addr(playerId)
 			CorrID, err := fc.id.FindGroupFromPlayer(addr, fc.states.Groups)
 			if err != nil {
@@ -236,7 +237,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			log.Info("New mute set, ", val)
 
-		case "cmd.mute.get_report": 
+		case "cmd.mute.get_report":
 			// find groupId fom addr(playerId)
 			CorrID, err := fc.id.FindGroupFromPlayer(addr, fc.states.Groups)
 			if err != nil {
@@ -249,9 +250,34 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 			msg := fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeStrMap, currVolume.Muted, nil, nil, newMsg.Payload)
 			fc.mqt.Publish(adr, msg)
-			log.Info("cmd.mutre.get_report called")
-		}
+			log.Info("cmd.mute.get_report called")
 
+		case "cmd.favorites.get_report":
+			var err error
+			fc.states.Favorites, err = fc.fv.GetFavorites(fc.configs.AccessToken, fc.states.Households[0].ID)
+			if err != nil {
+				log.Error(err)
+			}
+			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
+			msg := fimpgo.NewMessage("evt.favorites.report", "media_player", fimpgo.VTypeObject, fc.states.Favorites, nil, nil, newMsg.Payload)
+			fc.mqt.Publish(adr, msg)
+			log.Info("cmd.favorites.get_report called")
+
+		case "cmd.favorite.set":
+			val, err := newMsg.Payload.GetStringValue()
+			if err != nil {
+				log.Error(err)
+			}
+			log.Debug("song id: ", val)
+
+		case "cmd.playlists.get_report":
+			// add logic here
+			
+
+		case "cmd.playlists.set":
+			// add logic here
+
+		}
 
 	case model.ServiceName:
 		adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: model.ServiceName, ResourceAddress: "1"}
@@ -313,10 +339,10 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				fc.mqt.Publish(adr, msg)
 			}
 			fc.states.Households, fc.states.Groups, fc.states.Players = nil, nil, nil
-			
+
 			fc.configs.LoadDefaults()
 			fc.states.LoadDefaults()
-			
+
 			val2 := map[string]interface{}{
 				"errors":  nil,
 				"success": true,
@@ -432,6 +458,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			for i := 0; i < len(fc.configs.WantedHouseholds); i++ {
 				HouseholdID := fmt.Sprintf("%v", fc.configs.WantedHouseholds[i])
 				fc.states.Groups, fc.states.Players, err = fc.client.GetGroupsAndPlayers(fc.configs.AccessToken, HouseholdID)
+
 				if err != nil {
 					log.Error("error")
 				}

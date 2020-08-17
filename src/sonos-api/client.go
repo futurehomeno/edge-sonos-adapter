@@ -46,6 +46,16 @@ type Client struct {
 	Volume int  `json:"volume"`
 	Muted  bool `json:"muted"`
 	Fixed  bool `json:"fixed"`
+
+	Version   string     `json:"version"`
+	Favorites []Favorite `json:"favorites"`
+
+	Playlists []struct {
+		ID         string `json:"id"`
+		Name       string `json:"name"`
+		Type       string `json:"type"`
+		TrackCount int    `json:"trackCount"`
+	} `json:"playlists"`
 }
 
 type Household struct {
@@ -53,6 +63,7 @@ type Household struct {
 }
 
 type Group struct {
+	HouseholdID   string `json:"household"`
 	GroupId       string `json:"id"`
 	OnlyGroupId   string
 	FimpId        string
@@ -141,6 +152,27 @@ type NextItem struct {
 	} `json:"track"`
 }
 
+type Favorite struct {
+	Items []struct {
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Service     struct {
+			Name string `json:"name"`
+			ID   string `json:"id"`
+		} `json:"service"`
+	} `json:"items"`
+}
+
+type Playlist struct {
+	Playlists []struct {
+		ID         string `json:"id"`
+		Name       string `json:"name"`
+		Type       string `json:"type"`
+		TrackCount int    `json:"trackCount"`
+	} `json:"playlists"`
+}
+
 func (c *Client) RefreshAccessToken(refreshToken string, mqttServerUri string, env string) (string, error) {
 	client := edgeapp.NewFhOAuth2Client("sonos", "sonos", env)
 	client.SetParameters(mqttServerUri, "", "", 0, 0, 0, 0)
@@ -185,6 +217,66 @@ func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
 	}
 
 	return c.Households, nil
+}
+
+func (fv *Favorite) GetFavorites(accessToken string, HouseholdID string) (*Favorite, error) {
+	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/favorites")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Error(fmt.Errorf("Can't get favorites, error: ", err))
+		return nil, err
+	}
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	log.Debug("New Request: ", req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on GetFavorites: ", err)
+		return nil, err
+	}
+	log.Debug("resp: ", resp)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error when ioutil.ReadAll on GetFavorites: ", err)
+		return nil, err
+	}
+	log.Debug("body: ", body)
+	err = json.Unmarshal(body, &fv)
+	if err != nil {
+		log.Error("Error when unmarshaling body: ", err)
+		return nil, err
+	}
+	return fv, nil
+}
+
+func (c *Client) GetPlaylists(accessToken string, HouseholdID string) (*Client, error) {
+	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/playlists")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Error(fmt.Errorf("Can't get playlists, error: ", err))
+		return nil, err
+	}
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
+	log.Debug("New Request: ", req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("Error when DefaultClient.Do on GetPlaylists: ", err)
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error when ioutil.ReadAll on GetPlaylists: ", err)
+		return nil, err
+	}
+	err = json.Unmarshal(body, &c.Playlists)
+	if err != nil {
+		log.Error("Error when unmarshaling body: ", err)
+		return nil, err
+	}
+	return c, nil
 }
 
 func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]Group, []Player, error) {

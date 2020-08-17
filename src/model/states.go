@@ -43,6 +43,15 @@ type States struct {
 	Volume int  `json:"volume"`
 	Muted  bool `json:"muted"`
 	Fixed  bool `json:"fixed"`
+
+	Favorites *sonos.Favorite
+
+	Playlists []struct {
+		ID         string `json:"id"`
+		Name       string `json:"name"`
+		Type       string `json:"type"`
+		TrackCount int    `json:"trackCount"`
+	} `json:"playlists"`
 }
 
 func NewStates(workDir string) *States {
