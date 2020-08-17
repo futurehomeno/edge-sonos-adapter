@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 )
@@ -15,6 +16,16 @@ func FileExists(filename string) bool {
 }
 
 func CopyFile(src, dst string) error {
+
+	closeFile := func(c io.Closer) {
+		if c == nil {
+			return
+		}
+		if err := c.Close(); err != nil {
+			log.Error(err)
+		}
+	}
+
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
 		return err
@@ -28,13 +39,13 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer closeFile(source)
 
 	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer closeFile(destination)
 	_, err = io.Copy(destination, source)
 	return err
 }

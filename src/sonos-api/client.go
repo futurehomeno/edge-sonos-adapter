@@ -3,117 +3,98 @@ package sonos
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/futurehomeno/fimpgo/edgeapp"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	controlURL = "https://api.ws.sonos.com/control/api"
+	controlURL       = "https://api.ws.sonos.com/control/api"
+	sonosPartnerCode = "sonos"
 )
 
-type Config struct {
-	ErrorCode  int    `json:"errorCode"`
-	Message    string `json:"message"`
-	StatusCode int    `json:"statusCode"`
-	Success    bool   `json:"success"`
-}
-
-type Client struct {
-	httResponse *http.Response
-	Households  []Household `json:"households"`
-	Groups      []Group     `json:"groups"`
-	Players     []Player    `json:"players"`
-	Container   Container   `json:"container"`
-	CurrentItem CurrentItem `json:"currentItem"`
-	NextItem    NextItem    `json:"nextItem"`
-	StreamInfo  string      `json:"streamInfo"`
-
-	PlaybackState string `json:"playbackState"`
-
-	PlayModes struct {
-		Repeat    bool `json:"repeat"`
-		RepeatOne bool `json:"repeatOne"`
-		Shuffle   bool `json:"shuffle"`
-		Crossfade bool `json:"crossfade"`
+type (
+	Config struct {
+		ErrorCode  int    `json:"errorCode"`
+		Message    string `json:"message"`
+		StatusCode int    `json:"statusCode"`
+		Success    bool   `json:"success"`
 	}
 
-	Volume int  `json:"volume"`
-	Muted  bool `json:"muted"`
-	Fixed  bool `json:"fixed"`
+	Client struct {
+		futurehomeOauth2Client *edgeapp.FhOAuth2Client
 
-	Version   string     `json:"version"`
-	Favorites []Favorite `json:"favorites"`
+		Households  []Household `json:"households"`
+		Groups      []Group     `json:"groups"`
+		Players     []Player    `json:"players"`
+		Container   Container   `json:"container"`
+		CurrentItem CurrentItem `json:"currentItem"`
+		NextItem    NextItem    `json:"nextItem"`
+		StreamInfo  string      `json:"streamInfo"`
 
-	Playlists []struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		Type       string `json:"type"`
-		TrackCount int    `json:"trackCount"`
-	} `json:"playlists"`
-}
+		PlaybackState string `json:"playbackState"`
 
-type Household struct {
-	ID string `json:"id"`
-}
+		Volume int  `json:"volume"`
+		Muted  bool `json:"muted"`
+		Fixed  bool `json:"fixed"`
 
-type Group struct {
-	HouseholdID   string `json:"household"`
-	GroupId       string `json:"id"`
-	OnlyGroupId   string
-	FimpId        string
-	Name          string        `json:"name"`
-	CoordinatorId string        `json:"coordinatorId"`
-	PlaybackState string        `json:"playbackState"`
-	PlayersIds    []interface{} `json:"playerIds"`
-}
+		Version   string     `json:"version"`
+		Favorites []Favorite `json:"favorites"`
 
-type Player struct {
-	Id             string `json:"id"`
-	FimpId         string
-	Name           string        `json:"name"`
-	WebSocketUrl   string        `json:"websocketUrl"`
-	SWVersion      string        `json:"softwareVersion"`
-	APIVersion     string        `json:"apiVersion"`
-	MinAPIVersion  string        `json:"minApiVersion"`
-	IsUnregistered bool          `json:"isUnregistered"`
-	Capabilities   []interface{} `json:"capabilities"`
-	DeviceIds      []interface{} `json:"deviceIds"`
-	Icon           string        `json:"icon"`
-}
+		Playlists []struct {
+			ID         string `json:"id"`
+			Name       string `json:"name"`
+			Type       string `json:"type"`
+			TrackCount int    `json:"trackCount"`
+		} `json:"playlists"`
+		PlayModes struct {
+			Repeat    bool `json:"repeat"`
+			RepeatOne bool `json:"repeatOne"`
+			Shuffle   bool `json:"shuffle"`
+			Crossfade bool `json:"crossfade"`
+		}
+	}
 
-type Container struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	ID   struct {
-		ServiceID string `json:"serviceId"`
-		ObjectID  string `json:"objectId"`
-		AccountID string `json:"accountId"`
-	} `json:"id"`
-	Service struct {
+	Household struct {
+		ID string `json:"id"`
+	}
+
+	Group struct {
+		GroupId       string `json:"id"`
+		OnlyGroupId   string
+		FimpId        string
+		Name          string        `json:"name"`
+		CoordinatorId string        `json:"coordinatorId"`
+		PlaybackState string        `json:"playbackState"`
+		PlayersIds    []interface{} `json:"playerIds"`
+	}
+
+	Player struct {
+		Id             string `json:"id"`
+		FimpId         string
+		Name           string        `json:"name"`
+		WebSocketUrl   string        `json:"websocketUrl"`
+		SWVersion      string        `json:"softwareVersion"`
+		APIVersion     string        `json:"apiVersion"`
+		MinAPIVersion  string        `json:"minApiVersion"`
+		IsUnregistered bool          `json:"isUnregistered"`
+		Capabilities   []interface{} `json:"capabilities"`
+		DeviceIds      []interface{} `json:"deviceIds"`
+		Icon           string        `json:"icon"`
+	}
+
+	Container struct {
 		Name string `json:"name"`
-		ID   string `json:"id"`
-	} `json:"service"`
-	ImageURL string `json:"imageUrl"`
-}
-
-type CurrentItem struct {
-	Track struct {
-		Type     string `json:"type"`
-		Name     string `json:"name"`
-		ImageURL string `json:"imageUrl"`
-		Album    struct {
-			Name string `json:"name"`
-		} `json:"album"`
-		Artist struct {
-			Name string `json:"name"`
-		} `json:"artist"`
-		ID struct {
+		Type string `json:"type"`
+		ID   struct {
 			ServiceID string `json:"serviceId"`
 			ObjectID  string `json:"objectId"`
 			AccountID string `json:"accountId"`
@@ -122,34 +103,64 @@ type CurrentItem struct {
 			Name string `json:"name"`
 			ID   string `json:"id"`
 		} `json:"service"`
-		DurationMillis int      `json:"durationMillis"`
-		Tags           []string `json:"tags"`
-	} `json:"track"`
-}
-
-type NextItem struct {
-	Track struct {
-		Type     string `json:"type"`
-		Name     string `json:"name"`
 		ImageURL string `json:"imageUrl"`
-		Album    struct {
-			Name string `json:"name"`
-		} `json:"album"`
-		Artist struct {
-			Name string `json:"name"`
-		} `json:"artist"`
-		ID struct {
-			ServiceID string `json:"serviceId"`
-			ObjectID  string `json:"objectId"`
-			AccountID string `json:"accountId"`
-		} `json:"id"`
-		Service struct {
-			Name string `json:"name"`
-			ID   string `json:"id"`
-		} `json:"service"`
-		DurationMillis int      `json:"durationMillis"`
-		Tags           []string `json:"tags"`
-	} `json:"track"`
+	}
+
+	CurrentItem struct {
+		Track struct {
+			Type     string `json:"type"`
+			Name     string `json:"name"`
+			ImageURL string `json:"imageUrl"`
+			Album    struct {
+				Name string `json:"name"`
+			} `json:"album"`
+			Artist struct {
+				Name string `json:"name"`
+			} `json:"artist"`
+			ID struct {
+				ServiceID string `json:"serviceId"`
+				ObjectID  string `json:"objectId"`
+				AccountID string `json:"accountId"`
+			} `json:"id"`
+			Service struct {
+				Name string `json:"name"`
+				ID   string `json:"id"`
+			} `json:"service"`
+			DurationMillis int      `json:"durationMillis"`
+			Tags           []string `json:"tags"`
+		} `json:"track"`
+	}
+
+	NextItem struct {
+		Track struct {
+			Type     string `json:"type"`
+			Name     string `json:"name"`
+			ImageURL string `json:"imageUrl"`
+			Album    struct {
+				Name string `json:"name"`
+			} `json:"album"`
+			Artist struct {
+				Name string `json:"name"`
+			} `json:"artist"`
+			ID struct {
+				ServiceID string `json:"serviceId"`
+				ObjectID  string `json:"objectId"`
+				AccountID string `json:"accountId"`
+			} `json:"id"`
+			Service struct {
+				Name string `json:"name"`
+				ID   string `json:"id"`
+			} `json:"service"`
+			DurationMillis int      `json:"durationMillis"`
+			Tags           []string `json:"tags"`
+		} `json:"track"`
+	}
+)
+
+func NewClient(env string) *Client {
+	return &Client{
+		futurehomeOauth2Client: edgeapp.NewFhOAuth2Client(sonosPartnerCode, sonosPartnerCode, env),
+	}
 }
 
 type Favorite struct {
@@ -173,17 +184,19 @@ type Playlist struct {
 	} `json:"playlists"`
 }
 
-func (c *Client) RefreshAccessToken(refreshToken string, mqttServerUri string, env string) (string, error) {
-	client := edgeapp.NewFhOAuth2Client("sonos", "sonos", env)
-	client.SetParameters(mqttServerUri, "", "", 0, 0, 0, 0)
-	err := client.Init()
+func (c *Client) RefreshAccessToken(refreshToken string, mqttServerUri string) (string, error) {
+	c.futurehomeOauth2Client.SetParameters(mqttServerUri, "", "", 0, 0, 0, 0)
+	err := c.futurehomeOauth2Client.Init()
 	if err != nil {
-		log.Error("Failed to init sync client")
+		log.Error("failed to init sync client")
+		return "", err
 	}
+
 	log.Debug(refreshToken)
-	resp, err := client.ExchangeRefreshToken(refreshToken)
+
+	resp, err := c.futurehomeOauth2Client.ExchangeRefreshToken(refreshToken)
 	if err != nil {
-		log.Error("Can't fetch new access token", err)
+		log.Error("can't fetch new access token", err)
 		return "", err
 	}
 	return resp.AccessToken, nil
@@ -194,7 +207,7 @@ func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Error(fmt.Errorf("Can't get households, error: ", err))
+		log.Error(errors.Wrap(err, "can't get households, error: "))
 		return nil, err
 	}
 	req.Header.Set("Accept", "*/*")
@@ -205,9 +218,11 @@ func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
 		log.Error("Error when DefaultClient.Do on GetHousehold: ", err)
 		return nil, err
 	}
+	defer closeBody(resp.Body)
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error("Error when ioutil.Readall on GetHousehold: ", err)
+		log.Error(errors.Wrap(err, "reading body"))
 		return nil, err
 	}
 	err = json.Unmarshal(body, &c)
@@ -282,9 +297,9 @@ func (c *Client) GetPlaylists(accessToken string, HouseholdID string) (*Client, 
 func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]Group, []Player, error) {
 	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/groups")
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		log.Error(fmt.Errorf("Can't get players and groups, error: ", err))
+		log.Error(errors.Wrap(err, "getting players and groups, error: "))
 		return nil, nil, err
 	}
 	req.Header.Set("Accept", "*/*")
@@ -295,6 +310,8 @@ func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]
 		log.Error("Error when DefaultClient.Do on GetPlayersAndGroups: ", err)
 		return nil, nil, err
 	}
+	defer closeBody(resp.Body)
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("Error when ioutil.ReadAll on GetGroupsAndPlayers: ", err)
@@ -319,9 +336,9 @@ func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]
 
 func (c *Client) GetMetadata(accessToken string, groupID string) (*Client, error) {
 	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/groups/", groupID, "/playbackMetadata")
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		log.Error(fmt.Errorf("Can't get metadata, error: ", err))
+		log.Error(errors.Wrap(err, "getting metadata"))
 		return nil, err
 	}
 	req.Header.Set("Accept", "*/*")
@@ -332,6 +349,8 @@ func (c *Client) GetMetadata(accessToken string, groupID string) (*Client, error
 		log.Error("Error when DefaultClient.Do on GetMetadata: ", err)
 		return nil, err
 	}
+	defer closeBody(resp.Body)
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("Error when ioutil.ReadAll on GetGroupsAndPlayers: ", err)
@@ -362,6 +381,8 @@ func (c *Client) GetPlaybackStatus(id string, accessToken string) (*Client, erro
 		log.Error("Error when DefaultClient.Do on GetPlaybackStatus: ", err)
 		return nil, err
 	}
+	defer closeBody(resp.Body)
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("Error when ioutil.ReadAll on GetPlaybackStatus: ", err)
@@ -395,11 +416,14 @@ func (c *Client) GetVolume(id string, accessToken string) (*Client, error) {
 		log.Error("Error when DefaultClient.Do on GetVolume: ", err)
 		return nil, err
 	}
+	defer closeBody(resp.Body)
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("Error when ioutil.ReadAll on GetVolume: ", err)
 		return nil, err
 	}
+
 	err = json.Unmarshal(body, &c)
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
@@ -413,6 +437,16 @@ func (c *Client) GetVolume(id string, accessToken string) (*Client, error) {
 	return c, nil
 }
 
+func closeBody(c io.Closer) {
+	if c == nil {
+		return
+	}
+
+	if err := c.Close(); err != nil {
+		log.Error(errors.Wrap(err, "closing body"))
+	}
+}
+
 func processHTTPResponse(resp *http.Response, err error, holder interface{}) error {
 	if err != nil {
 		log.Error(fmt.Errorf("API does not respond"))
@@ -423,7 +457,7 @@ func processHTTPResponse(resp *http.Response, err error, holder interface{}) err
 	if resp.StatusCode != 200 {
 		//bytes, _ := ioutil.ReadAll(resp.Body)
 		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return fmt.Errorf("Bad HTTP return code %d", resp.StatusCode)
+		return fmt.Errorf("bad HTTP return code %d", resp.StatusCode)
 	}
 
 	// Unmarshall response into given struct

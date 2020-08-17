@@ -39,8 +39,12 @@ func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle,
 
 func (fc *FromFimpRouter) Start() {
 
-	fc.mqt.Subscribe(fmt.Sprintf("pt:j1/+/rt:dev/rn:%s/ad:1/#", model.ServiceName))
-	fc.mqt.Subscribe(fmt.Sprintf("pt:j1/+/rt:ad/rn:%s/ad:1", model.ServiceName))
+	if err := fc.mqt.Subscribe(fmt.Sprintf("pt:j1/+/rt:dev/rn:%s/ad:1/#", model.ServiceName)); err != nil {
+		log.Error(err)
+	}
+	if err := fc.mqt.Subscribe(fmt.Sprintf("pt:j1/+/rt:ad/rn:%s/ad:1", model.ServiceName)); err != nil {
+		log.Error(err)
+	}
 
 	go func(msgChan fimpgo.MessageCh) {
 		for {
@@ -67,6 +71,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err != nil {
 				log.Error("Ctrl error")
 			}
+
 			// find groupId from addr(playerId)
 			CorrID, err := fc.id.FindGroupFromPlayer(addr, fc.states.Groups)
 			if err != nil {
@@ -88,7 +93,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if success {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, val, nil, nil, newMsg.Payload)
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 			log.Info("New playback.set, ", val)
 
@@ -112,7 +119,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if pbStatus != nil {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, val, nil, nil, newMsg.Payload)
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 			log.Info("cmd.playback.get_report called")
 
@@ -146,7 +155,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				}
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, playmodes, nil, nil, newMsg.Payload)
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 			log.Info("New playbackmode.report, ", pbStatus.PlayModes)
 
@@ -163,7 +174,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 			msg := fimpgo.NewMessage("evt.playbackmode.report", "media_player", fimpgo.VTypeBoolMap, pbStatus.PlayModes, nil, nil, newMsg.Payload)
-			fc.mqt.Publish(adr, msg)
+			if err := fc.mqt.Publish(adr, msg); err != nil {
+				log.Error(err)
+			}
 			log.Info("cmd.playbackmode.get_report called")
 
 		case "cmd.volume.set":
@@ -190,7 +203,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if success {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, currVolume.Volume, nil, nil, newMsg.Payload)
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 			log.Info("New volume set, ", val)
 
@@ -206,7 +221,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 			msg := fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, currVolume.Volume, nil, nil, newMsg.Payload)
-			fc.mqt.Publish(adr, msg)
+			if err := fc.mqt.Publish(adr, msg); err != nil {
+				log.Error(err)
+			}
 			log.Info("cmd.volume.get_report called")
 
 		case "cmd.mute.set":
@@ -233,7 +250,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if success {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 				msg := fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeStrMap, currVolume.Muted, nil, nil, newMsg.Payload)
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 			log.Info("New mute set, ", val)
 
@@ -249,7 +268,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 			msg := fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeStrMap, currVolume.Muted, nil, nil, newMsg.Payload)
-			fc.mqt.Publish(adr, msg)
+			if err := fc.mqt.Publish(adr, msg); err != nil {
+				log.Error(err)
+			}
 			log.Info("cmd.mute.get_report called")
 
 		case "cmd.favorites.get_report":
@@ -272,7 +293,6 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 
 		case "cmd.playlists.get_report":
 			// add logic here
-			
 
 		case "cmd.playlists.set":
 			// add logic here
@@ -309,15 +329,21 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			msg := fimpgo.NewMessage("evt.auth.status_report", model.ServiceName, fimpgo.VTypeObject, status, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				// if response topic is not set , sending back to default application event topic
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 			fc.states.Households, err = fc.client.GetHousehold(fc.configs.AccessToken)
 			if err != nil {
 				log.Error("error")
 			}
 			log.Info("New tokens set successfully")
-			fc.configs.SaveToFile()
-			fc.states.SaveToFile()
+			if err := fc.configs.SaveToFile(); err != nil {
+				log.Error(err)
+			}
+			if err := fc.states.SaveToFile(); err != nil {
+				log.Error(err)
+			}
 
 		case "cmd.auth.logout":
 			// exclude all players
@@ -336,12 +362,18 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				}
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
 				msg := fimpgo.NewMessage("evt.thing.exclusion_report", "sonos", fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 			fc.states.Households, fc.states.Groups, fc.states.Players = nil, nil, nil
 
-			fc.configs.LoadDefaults()
-			fc.states.LoadDefaults()
+			if err := fc.configs.LoadDefaults(); err != nil {
+				log.Error(err)
+			}
+			if err := fc.states.LoadDefaults(); err != nil {
+				log.Error(err)
+			}
 
 			val2 := map[string]interface{}{
 				"errors":  nil,
@@ -352,7 +384,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				log.Error("Could not respond to wanted request")
 			}
 			log.Info("Logged out successfully")
-			fc.configs.LoadDefaults()
+			if err := fc.configs.LoadDefaults(); err != nil {
+				log.Error(err)
+			}
 
 		case "cmd.app.get_manifest":
 			mode, err := newMsg.Payload.GetStringValue()
@@ -417,21 +451,27 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			msg := fimpgo.NewMessage("evt.app.manifest_report", model.ServiceName, fimpgo.VTypeObject, manifest, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				// if response topic is not set , sending back to default application event topic
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 
 		case "cmd.app.get_state":
 			msg := fimpgo.NewMessage("evt.app.manifest_report", model.ServiceName, fimpgo.VTypeObject, fc.appLifecycle.GetAllStates(), nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				// if response topic is not set , sending back to default application event topic
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 
 		case "cmd.config.get_extended_report":
 
 			msg := fimpgo.NewMessage("evt.config.extended_report", model.ServiceName, fimpgo.VTypeObject, fc.configs, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 
 		case "cmd.config.extended_set":
@@ -443,7 +483,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				return
 			}
 			fc.configs.WantedHouseholds = conf.WantedHouseholds
-			fc.configs.SaveToFile()
+			if err := fc.configs.SaveToFile(); err != nil {
+				log.Error(err)
+			}
 			log.Debugf("App reconfigured . New parameters : %v", fc.configs)
 			// TODO: This is an example . Add your logic here or remove
 			configReport := model.ConfigReport{
@@ -452,7 +494,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			msg := fimpgo.NewMessage("evt.app.config_report", model.ServiceName, fimpgo.VTypeObject, configReport, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 
 			for i := 0; i < len(fc.configs.WantedHouseholds); i++ {
@@ -467,7 +511,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 
 					msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sonos", fimpgo.VTypeObject, inclReport, nil, nil, nil)
 					adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
-					fc.mqt.Publish(&adr, msg)
+					if err := fc.mqt.Publish(&adr, msg); err != nil {
+						log.Error(err)
+					}
 				}
 				fc.appLifecycle.SetConfigState(model.ConfigStateConfigured)
 			}
@@ -483,7 +529,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err == nil {
 				log.SetLevel(logLevel)
 				fc.configs.LogLevel = level
-				fc.configs.SaveToFile()
+				if err := fc.configs.SaveToFile(); err != nil {
+					log.Error(err)
+				}
 			}
 			log.Info("Log level updated to = ", logLevel)
 
@@ -500,7 +548,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			msg := fimpgo.NewMessage("evt.app.config_action_report", model.ServiceName, fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 
 		case "cmd.app.factory_reset":
@@ -516,7 +566,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			fc.appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
 			msg := fimpgo.NewMessage("evt.app.config_action_report", model.ServiceName, fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
-				fc.mqt.Publish(adr, msg)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
 			}
 
 		case "cmd.network.get_all_nodes":
@@ -530,7 +582,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 
 					msg := fimpgo.NewMessage("evt.thing.inclusion_report", "sonos", fimpgo.VTypeObject, inclReport, nil, nil, nil)
 					adr := fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
-					fc.mqt.Publish(&adr, msg)
+					if err := fc.mqt.Publish(&adr, msg); err != nil {
+						log.Error(err)
+					}
 				}
 			}
 		case "cmd.thing.inclusion":
@@ -552,8 +606,12 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 
 			}
 		}
-		fc.configs.SaveToFile()
-		fc.states.SaveToFile()
+		if err := fc.configs.SaveToFile(); err != nil {
+			log.Error(err)
+		}
+		if err := fc.states.SaveToFile(); err != nil {
+			log.Error(err)
+		}
 
 	}
 
