@@ -118,20 +118,31 @@ func main() {
 			for i := 0; i < len(states.Groups); i++ {
 				metadata, err := client.GetMetadata(configs.AccessToken, states.Groups[i].GroupId)
 				if err == nil {
+					var imageURL string
 					states.Container = metadata.Container
 					states.CurrentItem = metadata.CurrentItem
 					states.NextItem = metadata.NextItem
 					if states.Container.Service.Name == "Sonos Radio" {
-						states.StreamInfo = metadata.StreamInfo
-						states.Container.ImageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
+						if metadata.StreamInfo != "" {
+							states.StreamInfo = metadata.StreamInfo
+						} else {
+							states.StreamInfo = ""
+						}
+						imageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
+						states.CurrentItem = sonos.CurrentItem{}
+						states.NextItem = sonos.NextItem{}
 					} else {
 						states.StreamInfo = ""
+						imageURL = states.CurrentItem.Track.ImageURL
+						if imageURL == "" {
+							imageURL = states.Container.ImageURL
+						}
 					}
 
-					imageURL := states.Container.ImageURL
-					if imageURL == "" {
-						imageURL = states.CurrentItem.Track.ImageURL
-					}
+					// imageURL := states.Container.ImageURL
+					// if imageURL == "" {
+					// 	imageURL = states.CurrentItem.Track.ImageURL
+					// }
 
 					report := map[string]interface{}{
 						"album":       states.CurrentItem.Track.Album.Name,

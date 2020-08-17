@@ -49,12 +49,8 @@ type (
 		Version   string     `json:"version"`
 		Favorites []Favorite `json:"favorites"`
 
-		Playlists []struct {
-			ID         string `json:"id"`
-			Name       string `json:"name"`
-			Type       string `json:"type"`
-			TrackCount int    `json:"trackCount"`
-		} `json:"playlists"`
+		Playlists []Playlist `json:"playlists"`
+
 		PlayModes struct {
 			Repeat    bool `json:"repeat"`
 			RepeatOne bool `json:"repeatOne"`
@@ -155,33 +151,33 @@ type (
 			Tags           []string `json:"tags"`
 		} `json:"track"`
 	}
+
+	Favorite struct {
+		Items []struct {
+			ID          string `json:"id"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			Service     struct {
+				Name string `json:"name"`
+				ID   string `json:"id"`
+			} `json:"service"`
+		} `json:"items"`
+	}
+
+	Playlist struct {
+		Playlists []struct {
+			ID         string `json:"id"`
+			Name       string `json:"name"`
+			Type       string `json:"type"`
+			TrackCount int    `json:"trackCount"`
+		} `json:"playlists"`
+	}
 )
 
 func NewClient(env string) *Client {
 	return &Client{
 		futurehomeOauth2Client: edgeapp.NewFhOAuth2Client(sonosPartnerCode, sonosPartnerCode, env),
 	}
-}
-
-type Favorite struct {
-	Items []struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Service     struct {
-			Name string `json:"name"`
-			ID   string `json:"id"`
-		} `json:"service"`
-	} `json:"items"`
-}
-
-type Playlist struct {
-	Playlists []struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		Type       string `json:"type"`
-		TrackCount int    `json:"trackCount"`
-	} `json:"playlists"`
 }
 
 func (c *Client) RefreshAccessToken(refreshToken string, mqttServerUri string) (string, error) {
@@ -234,7 +230,7 @@ func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
 	return c.Households, nil
 }
 
-func (fv *Favorite) GetFavorites(accessToken string, HouseholdID string) (*Favorite, error) {
+func (c *Client) GetFavorites(accessToken string, HouseholdID string) ([]Favorite, error) {
 	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/favorites")
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -257,15 +253,15 @@ func (fv *Favorite) GetFavorites(accessToken string, HouseholdID string) (*Favor
 		return nil, err
 	}
 	log.Debug("body: ", body)
-	err = json.Unmarshal(body, &fv)
+	err = json.Unmarshal(body, &c)
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
 		return nil, err
 	}
-	return fv, nil
+	return c.Favorites, nil
 }
 
-func (c *Client) GetPlaylists(accessToken string, HouseholdID string) (*Client, error) {
+func (c *Client) GetPlaylists(accessToken string, HouseholdID string) ([]Playlist, error) {
 	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/playlists")
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -286,12 +282,12 @@ func (c *Client) GetPlaylists(accessToken string, HouseholdID string) (*Client, 
 		log.Error("Error when ioutil.ReadAll on GetPlaylists: ", err)
 		return nil, err
 	}
-	err = json.Unmarshal(body, &c.Playlists)
+	err = json.Unmarshal(body, &c)
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
 		return nil, err
 	}
-	return c, nil
+	return c.Playlists, nil
 }
 
 func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]Group, []Player, error) {
