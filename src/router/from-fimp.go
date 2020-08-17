@@ -292,7 +292,46 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err != nil {
 				log.Error(err)
 			}
+			CorrID, err := fc.id.FindGroupFromPlayer(addr, fc.states.Groups)
+			if err != nil {
+				log.Error(err)
+			}
 			log.Debug("song id: ", val)
+			success, err := fc.fv.FavoriteSet(val, CorrID, fc.configs.AccessToken)
+			if success {
+				metadata, err := fc.client.GetMetadata(fc.configs.AccessToken, CorrID)
+				if err == nil {
+					fc.states.Container = metadata.Container
+					fc.states.CurrentItem = metadata.CurrentItem
+					fc.states.NextItem = metadata.NextItem
+					if fc.states.Container.Service.Name == "Sonos Radio" {
+						fc.states.StreamInfo = metadata.StreamInfo
+						fc.states.Container.ImageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
+					} else {
+						fc.states.StreamInfo = ""
+					}
+
+					imageURL := fc.states.Container.ImageURL
+					if imageURL == "" {
+						imageURL = fc.states.CurrentItem.Track.ImageURL
+					}
+
+					report := map[string]interface{}{
+						"album":       fc.states.CurrentItem.Track.Album.Name,
+						"track":       fc.states.CurrentItem.Track.Name,
+						"artist":      fc.states.CurrentItem.Track.Artist,
+						"image_url":   imageURL,
+						"stream_info": fc.states.StreamInfo,
+					}
+					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
+
+					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
+					if err := fc.mqt.Publish(adr, msg); err != nil {
+						log.Error(err)
+					}
+					log.Info("New metadata message sent to fimp")
+				}
+			}
 
 		case "cmd.playlists.get_report":
 			var err error
@@ -307,7 +346,6 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			log.Info("cmd.playlists.get_report called")
 
 		case "cmd.playlists.set":
-			// add logic here
 			val, err := newMsg.Payload.GetStringValue()
 			if err != nil {
 				log.Error(err)
@@ -316,7 +354,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err != nil {
 				log.Error(err)
 			}
-			log.Debug("song id: ", val)
+			log.Debug("playlist id: ", val)
 			success, err := fc.pl.PlaylistSet(val, CorrID, fc.configs.AccessToken)
 			if success {
 				metadata, err := fc.client.GetMetadata(fc.configs.AccessToken, CorrID)
