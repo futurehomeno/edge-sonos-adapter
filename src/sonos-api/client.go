@@ -46,10 +46,10 @@ type (
 		Muted  bool `json:"muted"`
 		Fixed  bool `json:"fixed"`
 
-		Version   string     `json:"version"`
-		Favorites []Favorite `json:"favorites"`
+		Version string `json:"version"`
 
-		Playlists []Playlist `json:"playlists"`
+		Favorites []Favorites `json:"items"`
+		Playlists []Playlists `json:"playlists"`
 
 		PlayModes struct {
 			Repeat    bool `json:"repeat"`
@@ -152,25 +152,22 @@ type (
 		} `json:"track"`
 	}
 
-	Favorite struct {
-		Items []struct {
-			ID          string `json:"id"`
-			Name        string `json:"name"`
-			Description string `json:"description"`
-			Service     struct {
-				Name string `json:"name"`
-				ID   string `json:"id"`
-			} `json:"service"`
-		} `json:"items"`
+	Favorites struct {
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		ImageURL    string `json:"imageUrl"`
+		Service     struct {
+			Name string `json:"name"`
+			ID   string `json:"id"`
+		} `json:"service"`
 	}
 
-	Playlist struct {
-		Playlists []struct {
-			ID         string `json:"id"`
-			Name       string `json:"name"`
-			Type       string `json:"type"`
-			TrackCount int    `json:"trackCount"`
-		} `json:"playlists"`
+	Playlists struct {
+		ID         string `json:"id"`
+		Name       string `json:"name"`
+		Type       string `json:"type"`
+		TrackCount int    `json:"trackCount"`
 	}
 )
 
@@ -230,7 +227,7 @@ func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
 	return c.Households, nil
 }
 
-func (c *Client) GetFavorites(accessToken string, HouseholdID string) ([]Favorite, error) {
+func (c *Client) GetFavorites(accessToken string, HouseholdID string) ([]Favorites, error) {
 	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/favorites")
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -246,13 +243,11 @@ func (c *Client) GetFavorites(accessToken string, HouseholdID string) ([]Favorit
 		log.Error("Error when DefaultClient.Do on GetFavorites: ", err)
 		return nil, err
 	}
-	log.Debug("resp: ", resp)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("Error when ioutil.ReadAll on GetFavorites: ", err)
 		return nil, err
 	}
-	log.Debug("body: ", body)
 	err = json.Unmarshal(body, &c)
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
@@ -261,7 +256,7 @@ func (c *Client) GetFavorites(accessToken string, HouseholdID string) ([]Favorit
 	return c.Favorites, nil
 }
 
-func (c *Client) GetPlaylists(accessToken string, HouseholdID string) ([]Playlist, error) {
+func (c *Client) GetPlaylists(accessToken string, HouseholdID string) ([]Playlists, error) {
 	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/playlists")
 
 	req, err := http.NewRequest("GET", url, nil)

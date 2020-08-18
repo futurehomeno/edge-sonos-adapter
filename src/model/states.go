@@ -44,8 +44,8 @@ type States struct {
 	Muted  bool `json:"muted"`
 	Fixed  bool `json:"fixed"`
 
-	Favorites []sonos.Favorite
-	Playlists []sonos.Playlist
+	Favorites []sonos.Favorites
+	Playlists []sonos.Playlists
 }
 
 func NewStates(workDir string) *States {
