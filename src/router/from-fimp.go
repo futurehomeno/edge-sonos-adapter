@@ -287,7 +287,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			fc.mqt.Publish(adr, msg)
 			log.Info("cmd.favorites.get_report called")
 
-		case "cmd.favorite.set":
+		case "cmd.favorites.set":
 			val, err := newMsg.Payload.GetStringValue()
 			if err != nil {
 				log.Error(err)
