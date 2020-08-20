@@ -657,6 +657,8 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			fc.appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
 			fc.appLifecycle.SetAppState(model.AppStateNotConfigured, nil)
 			fc.appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
+			fc.configs.LoadDefaults()
+			fc.states.LoadDefaults()
 			msg := fimpgo.NewMessage("evt.app.config_action_report", model.ServiceName, fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
 			if err := fc.mqt.RespondToRequest(newMsg.Payload, msg); err != nil {
 				if err := fc.mqt.Publish(adr, msg); err != nil {
