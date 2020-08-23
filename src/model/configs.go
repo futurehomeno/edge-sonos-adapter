@@ -27,8 +27,6 @@ type Configs struct {
 	WorkDir            string        `json:"-"`
 	ConfiguredAt       string        `json:"configured_at"`
 	ConfiguredBy       string        `json:"configured_by"`
-	Param1             bool          `json:"param_1"`
-	Param2             string        `json:"param_2"`
 	AccessToken        string        `json:"access_token"`
 	RefreshToken       string        `json:"refresh_token"`
 	ExpiresIn          int           `json:"expires_in"`
@@ -93,6 +91,13 @@ func (cf *Configs) LoadDefaults() error {
 
 func (cf *Configs) IsAuthenticated() bool {
 	if cf.AccessToken != "" && cf.AccessToken != "access_token" {
+		return true
+	}
+	return false
+}
+
+func (cf *Configs) IsConfigured() bool {
+	if cf.IsAuthenticated() && len(cf.WantedHouseholds)>0 {
 		return true
 	}
 	return false

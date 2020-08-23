@@ -185,7 +185,7 @@ func (al *Lifecycle) processEvent(event SystemEvent) {
 		al.SetAppState(ConfigStateInProgress, nil)
 
 	case EventConfigured:
-		al.SetAppState(ConfigStateConfigured, nil)
+		al.SetConfigState(ConfigStateConfigured)
 		al.SetAppState(AppStateRunning, nil)
 
 	case EventConfigError:

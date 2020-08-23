@@ -89,6 +89,41 @@ func (ns *NetworkService) MakeInclusionReport(Player sonos.Player) fimptype.Thin
 		MsgType:   "evt.metadata.report",
 		ValueType: "str_map",
 		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.favorites.set",
+		ValueType: "string",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.favorites.get_report",
+		ValueType: "null",
+		Version:   "1",
+	},{
+		Type:      "out",
+		MsgType:   "evt.favorites.report",
+		ValueType: "object",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.playlists.set",
+		ValueType: "string",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.playlists.get_report",
+		ValueType: "null",
+		Version:   "1",
+	},{
+		Type:      "out",
+		MsgType:   "evt.playlists.report",
+		ValueType: "object",
+		Version:   "1",
+	}, {
+		Type:      "in",
+		MsgType:   "cmd.audioclip.play",
+		ValueType: "object",
+		Version:   "1",
 	}}
 
 	mediaPlayerService := fimptype.Service{

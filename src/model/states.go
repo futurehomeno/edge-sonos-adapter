@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,9 +15,6 @@ import (
 
 type States struct {
 	path         string
-	LogFile      string `json:"log_file"`
-	LogLevel     string `json:"log_level"`
-	LogFormat    string `json:"log_format"`
 	WorkDir      string `json:"-"`
 	ConfiguredAt string `json:"configuret_at"`
 	ConfiguredBy string `json:"configures_by"`
@@ -44,22 +40,22 @@ type States struct {
 	Muted  bool `json:"muted"`
 	Fixed  bool `json:"fixed"`
 
-	Favorites []sonos.Favorites
-	Playlists []sonos.Playlists
+	Favorites []sonos.Favorite
+	Playlists []sonos.Playlist
 }
 
 func NewStates(workDir string) *States {
 	state := &States{WorkDir: workDir}
-	state.path = filepath.Join(workDir, "data", "state.json")
-	if !utils.FileExists(state.path) {
-		log.Info("State file doesn't exist.Loading default state")
-		defaultStateFile := filepath.Join(workDir, "defaults", "state.json")
-		err := utils.CopyFile(defaultStateFile, state.path)
-		if err != nil {
-			fmt.Print(err)
-			panic("Can't copy state file.")
-		}
-	}
+	//state.path = filepath.Join(workDir, "data", "state.json")
+	//if !utils.FileExists(state.path) {
+	//	log.Info("State file doesn't exist.Loading default state")
+	//	defaultStateFile := filepath.Join(workDir, "defaults", "state.json")
+	//	err := utils.CopyFile(defaultStateFile, state.path)
+	//	if err != nil {
+	//		fmt.Print(err)
+	//		panic("Can't copy state file.")
+	//	}
+	//}
 	return state
 }
 
@@ -84,14 +80,6 @@ func (st *States) SaveToFile() error {
 		return err
 	}
 	return err
-}
-
-func (st *States) GetDataDir() string {
-	return filepath.Join(st.WorkDir, "data")
-}
-
-func (st *States) GetDefaultDir() string {
-	return filepath.Join(st.WorkDir, "defaults")
 }
 
 func (st *States) LoadDefaults() error {

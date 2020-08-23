@@ -1,14 +1,13 @@
 package sonos
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"strconv"
-	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -30,33 +29,10 @@ type (
 	}
 
 	Client struct {
-		futurehomeOauth2Client *edgeapp.FhOAuth2Client
-
-		Households  []Household `json:"households"`
-		Groups      []Group     `json:"groups"`
-		Players     []Player    `json:"players"`
-		Container   Container   `json:"container"`
-		CurrentItem CurrentItem `json:"currentItem"`
-		NextItem    NextItem    `json:"nextItem"`
-		StreamInfo  string      `json:"streamInfo"`
-
-		PlaybackState string `json:"playbackState"`
-
-		Volume int  `json:"volume"`
-		Muted  bool `json:"muted"`
-		Fixed  bool `json:"fixed"`
-
-		Version string `json:"version"`
-
-		Favorites []Favorites `json:"items"`
-		Playlists []Playlists `json:"playlists"`
-
-		PlayModes struct {
-			Repeat    bool `json:"repeat"`
-			RepeatOne bool `json:"repeatOne"`
-			Shuffle   bool `json:"shuffle"`
-			Crossfade bool `json:"crossfade"`
-		}
+		oauth2Client *edgeapp.FhOAuth2Client
+		httpClient   *http.Client
+		accessToken  string
+		refreshToken string
 	}
 
 	Household struct {
@@ -152,7 +128,7 @@ type (
 		} `json:"track"`
 	}
 
-	Favorites struct {
+	Favorite struct {
 		ID          string `json:"id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -163,7 +139,7 @@ type (
 		} `json:"service"`
 	}
 
-	Playlists struct {
+	Playlist struct {
 		ID         string `json:"id"`
 		Name       string `json:"name"`
 		Type       string `json:"type"`
@@ -171,294 +147,117 @@ type (
 	}
 )
 
-func NewClient(env string) *Client {
+func NewClient(env,accessToken,refreshToken string) *Client {
+	authClient := edgeapp.NewFhOAuth2Client(sonosPartnerCode, sonosPartnerCode, env)
+
 	return &Client{
-		futurehomeOauth2Client: edgeapp.NewFhOAuth2Client(sonosPartnerCode, sonosPartnerCode, env),
+		refreshToken: refreshToken,
+		accessToken:  accessToken,
+		oauth2Client: authClient,
+		httpClient:   &http.Client{Timeout:30*time.Second}, // Very important to set timeout
 	}
 }
 
-func (c *Client) RefreshAccessToken(refreshToken string, mqttServerUri string) (string, error) {
-	c.futurehomeOauth2Client.SetParameters(mqttServerUri, "", "", 0, 0, 0, 0)
-	err := c.futurehomeOauth2Client.Init()
-	if err != nil {
-		log.Error("failed to init sync client")
-		return "", err
+func (clt *Client) SetHubAuthToken(token string) {
+	clt.oauth2Client.SetHubToken(token)
+}
+
+func (clt *Client) UpdateAuthParameters(mqttBrokerUri string) {
+	clt.oauth2Client.SetParameters(mqttBrokerUri, "", "", 0, 0, 0, 0)
+}
+
+func (clt *Client) RefreshAccessToken(refreshToken string) (string, error) {
+	if refreshToken == "" {
+		refreshToken = clt.refreshToken
 	}
-
-	log.Debug(refreshToken)
-
-	resp, err := c.futurehomeOauth2Client.ExchangeRefreshToken(refreshToken)
+	if refreshToken == "" {
+		log.Error("<client> Empty refresh token")
+		return "",fmt.Errorf("empty refresh token")
+	}
+	resp, err := clt.oauth2Client.ExchangeRefreshToken(refreshToken)
 	if err != nil {
 		log.Error("can't fetch new access token", err)
 		return "", err
 	}
+	log.Debug("<client> New access token : ",resp.AccessToken)
+	clt.accessToken = resp.AccessToken
 	return resp.AccessToken, nil
 }
 
-func (c *Client) GetHousehold(accessToken string) ([]Household, error) {
+func (clt *Client) GetHousehold() ([]Household, error) {
 	url := fmt.Sprintf("%s%s", controlURL, "/v1/households")
 
-	req, err := http.NewRequest("GET", url, nil)
+	body,err := clt.doApiRequest(http.MethodGet,url,nil)
 	if err != nil {
-		log.Error(errors.Wrap(err, "can't get households, error: "))
 		return nil, err
 	}
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetHousehold: ", err)
-		return nil, err
+	type HouseholdsResponse struct {
+		Households []Household `json:"households"`
 	}
-	defer closeBody(resp.Body)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(errors.Wrap(err, "reading body"))
-		return nil, err
-	}
-	err = json.Unmarshal(body, &c)
+	var response HouseholdsResponse
+	err = json.Unmarshal(body, &response)
 	if err != nil {
 		log.Error("Error when unmarshaling body: ", err)
 		return nil, err
 	}
-
-	return c.Households, nil
+	return response.Households, nil
 }
 
-func (c *Client) GetFavorites(accessToken string, HouseholdID string) ([]Favorites, error) {
-	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/favorites")
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Error(fmt.Errorf("Can't get favorites, error: ", err))
-		return nil, err
+// do a generic HTTP request
+func (clt *Client) doHttpRequest(req *http.Request) ([]byte, error) {
+	var err error
+	var resp *http.Response
+	for i:=0;i<3;i++ {
+		resp, err = clt.httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode == 200 {
+			break
+		}else if resp.StatusCode == 401 {
+			log.Info("Invalid token . Retrying")
+			_,err= clt.RefreshAccessToken(clt.refreshToken)
+			if err != nil {
+				time.Sleep(time.Second*5)
+			}else {
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", clt.accessToken))
+			}
+		}else if resp.StatusCode != 200 {
+			log.Error("Bad HTTP return code ", resp.StatusCode)
+			return nil, err
+		}
 	}
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetFavorites: ", err)
-		return nil, err
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		log.Error("Bad HTTP return code ", resp.StatusCode)
+		return nil, fmt.Errorf("bad HTTP return code %d", resp.StatusCode)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetFavorites: ", err)
-		return nil, err
-	}
-	err = json.Unmarshal(body, &c)
-	if err != nil {
-		log.Error("Error when unmarshaling body: ", err)
-		return nil, err
-	}
-	return c.Favorites, nil
+	return ioutil.ReadAll(resp.Body)
 }
 
-func (c *Client) GetPlaylists(accessToken string, HouseholdID string) ([]Playlists, error) {
-	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/playlists")
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Error(fmt.Errorf("Can't get playlists, error: ", err))
-		return nil, err
+func (clt *Client) doApiRequest(method,url string ,jsonRequest interface{})([]byte, error) {
+	var requestBody io.Reader
+	var err error
+	if jsonRequest != nil {
+		bytesRepresentation, err := json.Marshal(jsonRequest)
+		if err != nil {
+			log.Error("<client> Request marshalling error. Err:",err.Error())
+			return nil, err
+		}
+		requestBody = bytes.NewBuffer(bytesRepresentation)
 	}
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetPlaylists: ", err)
-		return nil, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetPlaylists: ", err)
-		return nil, err
-	}
-	err = json.Unmarshal(body, &c)
-	if err != nil {
-		log.Error("Error when unmarshaling body: ", err)
-		return nil, err
-	}
-	return c.Playlists, nil
-}
-
-func (c *Client) GetGroupsAndPlayers(accessToken string, HouseholdID string) ([]Group, []Player, error) {
-	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/groups")
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		log.Error(errors.Wrap(err, "getting players and groups, error: "))
-		return nil, nil, err
-	}
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetPlayersAndGroups: ", err)
-		return nil, nil, err
-	}
-	defer closeBody(resp.Body)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetGroupsAndPlayers: ", err)
-		return nil, nil, err
-	}
-	err = json.Unmarshal(body, &c)
-	if err != nil {
-		log.Error("Error when unmarshaling body: ", err)
-		return nil, nil, err
-	}
-	for i := 0; i < len(c.Groups); i++ {
-		IDs := strings.Split(c.Groups[i].GroupId, "_")[1]
-		c.Groups[i].FimpId = strings.Split(IDs, ":")[0]
-		c.Groups[i].OnlyGroupId = strings.Split(IDs, ":")[1]
-	}
-	for i := 0; i < len(c.Players); i++ {
-		c.Players[i].FimpId = strings.Split(c.Players[i].Id, "_")[1]
-	}
-
-	return c.Groups, c.Players, nil
-}
-
-func (c *Client) GetMetadata(accessToken string, groupID string) (*Client, error) {
-	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/groups/", groupID, "/playbackMetadata")
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(method, url, requestBody)
 	if err != nil {
 		log.Error(errors.Wrap(err, "getting metadata"))
 		return nil, err
 	}
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetMetadata: ", err)
-		return nil, err
-	}
-	defer closeBody(resp.Body)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetGroupsAndPlayers: ", err)
-		return nil, err
-	}
-	err = json.Unmarshal(body, &c)
-	if err != nil {
-		log.Error("Error when unmarshaling body: ", err)
-		return nil, err
-	}
-
-	return c, nil
+	req.Header.Set("Content-Type","application/json")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", clt.accessToken))
+	return clt.doHttpRequest(req)
 }
 
-// GetPlaybackStatus gets playback status
-func (c *Client) GetPlaybackStatus(id string, accessToken string) (*Client, error) {
-	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/playback")
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Error("Error when getting playback status: ", err)
-		return nil, err
-	}
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	req.Header.Set("Content-Type", "application/json")
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetPlaybackStatus: ", err)
-		return nil, err
-	}
-	defer closeBody(resp.Body)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetPlaybackStatus: ", err)
-		return nil, err
-	}
-	err = json.Unmarshal(body, &c)
-	if err != nil {
-		log.Error("Error when unmarshaling body: ", err)
-		return nil, err
-	}
-	if resp.StatusCode != 200 {
-		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return nil, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
-	}
-
-	return c, nil
-}
-
-func (c *Client) GetVolume(id string, accessToken string) (*Client, error) {
-	url := fmt.Sprintf("%s%s%s", "https://api.ws.sonos.com/control/api/v1/groups/", id, "/groupVolume")
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Error("Error when getting volume status: ", err)
-		return nil, err
-	}
-	req.Header.Set("Authorization", os.ExpandEnv(fmt.Sprintf("%s%s", "Bearer ", accessToken)))
-	req.Header.Set("Content-Type", "application/json")
-	log.Debug("New Request: ", req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error("Error when DefaultClient.Do on GetVolume: ", err)
-		return nil, err
-	}
-	defer closeBody(resp.Body)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("Error when ioutil.ReadAll on GetVolume: ", err)
-		return nil, err
-	}
-
-	err = json.Unmarshal(body, &c)
-	if err != nil {
-		log.Error("Error when unmarshaling body: ", err)
-		return nil, err
-	}
-	if resp.StatusCode != 200 {
-		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return nil, fmt.Errorf("%s%s", "Bad HTTP return code ", strconv.Itoa(resp.StatusCode))
-	}
-
-	return c, nil
-}
-
-func closeBody(c io.Closer) {
-	if c == nil {
-		return
-	}
-
-	if err := c.Close(); err != nil {
-		log.Error(errors.Wrap(err, "closing body"))
-	}
-}
-
-func processHTTPResponse(resp *http.Response, err error, holder interface{}) error {
-	if err != nil {
-		log.Error(fmt.Errorf("API does not respond"))
-		return err
-	}
-	defer resp.Body.Close()
-	// check http return code
-	if resp.StatusCode != 200 {
-		//bytes, _ := ioutil.ReadAll(resp.Body)
-		log.Error("Bad HTTP return code ", resp.StatusCode)
-		return fmt.Errorf("bad HTTP return code %d", resp.StatusCode)
-	}
-
-	// Unmarshall response into given struct
-	if err = json.NewDecoder(resp.Body).Decode(holder); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Client) SetCorrectValue(val string) string {
+func (clt *Client) SetCorrectValue(val string) string {
 	log.Debug(val)
 	if val == "PLAYBACK_STATE_PLAYING" {
 		return "play"
