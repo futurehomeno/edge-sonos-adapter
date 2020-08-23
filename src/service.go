@@ -87,10 +87,10 @@ func main() {
 		var oldVolume int
 		var oldMuted bool
 		log.Info("<main>Starting update loop")
-		LoadStates(configs, client, states, err, oldReport, mqtt, oldPbStateValue, oldPlayModes, oldVolume, oldMuted)
+		LoadStates(configs, client, states, err, &oldReport, mqtt, &oldPbStateValue, &oldPlayModes, &oldVolume, &oldMuted)
 		ticker := time.NewTicker(time.Duration(15) * time.Second)
 		for range ticker.C {
-			LoadStates(configs, client, states, err, oldReport, mqtt, oldPbStateValue, oldPlayModes, oldVolume, oldMuted)
+			LoadStates(configs, client, states, err, &oldReport, mqtt, &oldPbStateValue, &oldPlayModes, &oldVolume, &oldMuted)
 		}
 		ticker.Stop()
 		appLifecycle.WaitForState(model.AppStateNotConfigured, "main")
@@ -98,12 +98,12 @@ func main() {
 
 }
 
-func LoadStates(configs *model.Configs, client *sonos.Client, states *model.States, err error, oldReport map[string]interface{}, mqtt *fimpgo.MqttTransport, oldPbStateValue string, oldPlayModes struct {
+func LoadStates(configs *model.Configs, client *sonos.Client, states *model.States, err error, oldReport *map[string]interface{}, mqtt *fimpgo.MqttTransport, oldPbStateValue *string, oldPlayModes *struct {
 	Repeat    bool `json:"repeat"`
 	RepeatOne bool `json:"repeatOne"`
 	Shuffle   bool `json:"shuffle"`
 	Crossfade bool `json:"crossfade"`
-}, oldVolume int, oldMuted bool) {
+}, oldVolume *int, oldMuted *bool) {
 	if configs.AccessToken != "" && configs.AccessToken != "access_token" {
 		// ADD LOGIC TO HANDLE REFRESH TOKEN
 		// every 24 hours at least
@@ -168,13 +168,13 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 				"stream_info": states.StreamInfo,
 			}
 			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: states.Groups[i].FimpId}
-			oldReportEqualsNewReport := reflect.DeepEqual(oldReport, report)
+			oldReportEqualsNewReport := reflect.DeepEqual(*oldReport, report)
 			if !oldReportEqualsNewReport {
 				msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
 				if err := mqtt.Publish(adr, msg); err != nil {
 					log.Error(err)
 				}
-				oldReport = report
+				*oldReport = report
 				log.Info("New metadata message sent to fimp")
 			}
 
@@ -188,21 +188,24 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 			}
 
 			states.PlaybackState = pbState.PlaybackState
-			//states.PlayModes = pbState.PlayModes //TODO :FIX this
+			states.PlayModes.Crossfade = pbState.PlayModes.Crossfade
+			states.PlayModes.Repeat = pbState.PlayModes.Repeat
+			states.PlayModes.RepeatOne = pbState.PlayModes.RepeatOne
+			states.PlayModes.Shuffle = pbState.PlayModes.Shuffle
 			states.Volume = volume.Volume
 			states.Muted = volume.Muted
 			states.Fixed = volume.Fixed
 
 			pbStateValue := client.SetCorrectValue(states.PlaybackState)
-			if oldPbStateValue != pbStateValue {
+			if *oldPbStateValue != pbStateValue {
 				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, pbStateValue, nil, nil, nil)
 				if err := mqtt.Publish(adr, msg); err != nil {
 					log.Error(err)
 				}
-				oldPbStateValue = pbStateValue
+				*oldPbStateValue = pbStateValue
 				log.Info("New playback.report sent to fimp")
 			}
-			oldPlayModesEqualsNewPlaymodes := reflect.DeepEqual(oldPlayModes, states.PlayModes)
+			oldPlayModesEqualsNewPlaymodes := reflect.DeepEqual(*oldPlayModes, states.PlayModes)
 			playmodes := map[string]bool{
 				"repeat":     states.PlayModes.Repeat,
 				"repeat_one": states.PlayModes.RepeatOne,
@@ -215,23 +218,23 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 				if err := mqtt.Publish(adr, msg); err != nil {
 					log.Error(err)
 				}
-				oldPlayModes = states.PlayModes
+				*oldPlayModes = states.PlayModes
 				log.Info("New playbackmode.report sent to fimp")
 			}
-			if oldVolume != states.Volume {
+			if *oldVolume != states.Volume {
 				msg := fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, states.Volume, nil, nil, nil)
 				if err := mqtt.Publish(adr, msg); err != nil {
 					log.Error(err)
 				}
-				oldVolume = states.Volume
+				*oldVolume = states.Volume
 				log.Info("New volume.report sent to fimp")
 			}
-			if oldMuted != states.Muted {
+			if *oldMuted != states.Muted {
 				msg := fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeBool, states.Muted, nil, nil, nil)
 				if err := mqtt.Publish(adr, msg); err != nil {
 					log.Error(err)
 				}
-				oldMuted = states.Muted
+				*oldMuted = states.Muted
 				log.Info("New mute.report sent to fimp")
 			}
 
