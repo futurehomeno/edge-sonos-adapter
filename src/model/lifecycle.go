@@ -103,6 +103,7 @@ func (al *Lifecycle) ConfigState() State {
 }
 
 func (al *Lifecycle) SetConfigState(configState State) {
+	log.Info("<sysEvt> New config state = ", configState)
 	al.configState = configState
 }
 
@@ -111,6 +112,7 @@ func (al *Lifecycle) AuthState() State {
 }
 
 func (al *Lifecycle) SetAuthState(authState State) {
+	log.Info("<sysEvt> New auth state = ", authState)
 	al.authState = authState
 }
 
@@ -119,6 +121,7 @@ func (al *Lifecycle) ConnectionState() State {
 }
 
 func (al *Lifecycle) SetConnectionState(connectivityState State) {
+	log.Info("<sysEvt> New connection state = ", connectivityState)
 	al.connectionState = connectivityState
 }
 
@@ -130,7 +133,7 @@ func (al *Lifecycle) SetAppState(currentState State, params map[string]string) {
 	al.busMux.Lock()
 	al.previousAppState = al.appState
 	al.appState = currentState
-	log.Debug("<sysEvt> New system state = ", currentState)
+	log.Info("<sysEvt> New app state = ", currentState)
 	for i := range al.systemEventBus {
 		select {
 		case al.systemEventBus[i] <- SystemEvent{Type: SystemEventTypeState, State: currentState, Info: "sys", Params: params}:

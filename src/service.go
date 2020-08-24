@@ -90,10 +90,12 @@ func main() {
 		LoadStates(configs, client, states, err, &oldReport, mqtt, &oldPbStateValue, &oldPlayModes, &oldVolume, &oldMuted)
 		ticker := time.NewTicker(time.Duration(15) * time.Second)
 		for range ticker.C {
+			if appLifecycle.AppState() != model.AppStateRunning {
+				break
+			}
 			LoadStates(configs, client, states, err, &oldReport, mqtt, &oldPbStateValue, &oldPlayModes, &oldVolume, &oldMuted)
 		}
 		ticker.Stop()
-		appLifecycle.WaitForState(model.AppStateNotConfigured, "main")
 	}
 
 }
