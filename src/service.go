@@ -76,16 +76,6 @@ func main() {
 	for {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
 		ticker := time.NewTicker(time.Duration(15) * time.Second)
-		var oldReport map[string]interface{}
-		var oldPbStateValue string
-		var oldPlayModes struct {
-			Repeat    bool `json:"repeat"`
-			RepeatOne bool `json:"repeatOne"`
-			Shuffle   bool `json:"shuffle"`
-			Crossfade bool `json:"crossfade"`
-		}
-		var oldVolume int
-		var oldMuted bool
 
 		for range ticker.C {
 			if configs.AccessToken != "" && configs.AccessToken != "access_token" {
@@ -106,6 +96,20 @@ func main() {
 						log.Error(err)
 					}
 				}
+			} else if configs.AccessToken == "" && configs.RefreshToken != "" {
+				newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken, configs.MqttServerURI)
+				if err != nil {
+					log.Error(errors.Wrap(err, "refreshing access token"))
+				}
+				currentMillis := time.Now().UnixNano() / 1000000
+				configs.AccessToken = newAccessToken
+				configs.LastAuthMillis = currentMillis
+				if err := configs.SaveToFile(); err != nil {
+					log.Error(err)
+				}
+			}
+			if configs.AccessToken != "" && configs.AccessToken != "access_token" {
+				appLifecycle.SetAuthState(model.AuthStateAuthenticated)
 			}
 			for i := 0; i < len(configs.WantedHouseholds); i++ {
 				HouseholdID := fmt.Sprintf("%v", configs.WantedHouseholds[i])
@@ -152,13 +156,13 @@ func main() {
 						"stream_info": states.StreamInfo,
 					}
 					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: states.Groups[i].FimpId}
-					oldReportEqualsNewReport := reflect.DeepEqual(oldReport, report)
+					oldReportEqualsNewReport := reflect.DeepEqual(states.Groups[i].OldReport, report)
 					if !oldReportEqualsNewReport {
 						msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
 						if err := mqtt.Publish(adr, msg); err != nil {
 							log.Error(err)
 						}
-						oldReport = report
+						states.Groups[i].OldReport = report
 						log.Info("New metadata message sent to fimp")
 					}
 
@@ -178,15 +182,15 @@ func main() {
 					states.Fixed = volume.Fixed
 
 					pbStateValue := client.SetCorrectValue(states.PlaybackState)
-					if oldPbStateValue != pbStateValue {
+					if states.Groups[i].OldPbStateValue != pbStateValue {
 						msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, pbStateValue, nil, nil, nil)
 						if err := mqtt.Publish(adr, msg); err != nil {
 							log.Error(err)
 						}
-						oldPbStateValue = pbStateValue
+						states.Groups[i].OldPbStateValue = pbStateValue
 						log.Info("New playback.report sent to fimp")
 					}
-					oldPlayModesEqualsNewPlaymodes := reflect.DeepEqual(oldPlayModes, states.PlayModes)
+					oldPlayModesEqualsNewPlaymodes := reflect.DeepEqual(states.Groups[i].OldPlayModes, states.PlayModes)
 					playmodes := map[string]bool{
 						"repeat":     states.PlayModes.Repeat,
 						"repeat_one": states.PlayModes.RepeatOne,
@@ -199,23 +203,23 @@ func main() {
 						if err := mqtt.Publish(adr, msg); err != nil {
 							log.Error(err)
 						}
-						oldPlayModes = states.PlayModes
+						states.Groups[i].OldPlayModes = states.PlayModes
 						log.Info("New playbackmode.report sent to fimp")
 					}
-					if oldVolume != states.Volume {
+					if states.Groups[i].OldVolume != states.Volume {
 						msg := fimpgo.NewMessage("evt.volume.report", "media_player", fimpgo.VTypeInt, states.Volume, nil, nil, nil)
 						if err := mqtt.Publish(adr, msg); err != nil {
 							log.Error(err)
 						}
-						oldVolume = states.Volume
+						states.Groups[i].OldVolume = states.Volume
 						log.Info("New volume.report sent to fimp")
 					}
-					if oldMuted != states.Muted {
+					if states.Groups[i].OldMuted != states.Muted {
 						msg := fimpgo.NewMessage("evt.mute.report", "media_player", fimpgo.VTypeBool, states.Muted, nil, nil, nil)
 						if err := mqtt.Publish(adr, msg); err != nil {
 							log.Error(err)
 						}
-						oldMuted = states.Muted
+						states.Groups[i].OldMuted = states.Muted
 						log.Info("New mute.report sent to fimp")
 					}
 

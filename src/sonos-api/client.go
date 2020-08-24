@@ -71,6 +71,17 @@ type (
 		CoordinatorId string        `json:"coordinatorId"`
 		PlaybackState string        `json:"playbackState"`
 		PlayersIds    []interface{} `json:"playerIds"`
+
+		OldReport       map[string]interface{} `json:"oldReport"`
+		OldPbStateValue string                 `json:"oldPbStateValue"`
+		OldPlayModes    struct {
+			Repeat    bool `json:"repeat"`
+			RepeatOne bool `json:"repeatOne"`
+			Shuffle   bool `json:"shuffle"`
+			Crossfade bool `json:"crossfade"`
+		}
+		OldVolume int  `json:"oldVolume"`
+		OldMuted  bool `json:"oldMuted"`
 	}
 
 	Player struct {
