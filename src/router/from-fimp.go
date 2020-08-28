@@ -419,6 +419,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				fc.configs.LastAuthMillis = time.Now().UnixNano() / 1000000
 				fc.configs.RefreshToken = authReq.RefreshToken
 				fc.configs.ExpiresIn = authReq.ExpiresIn
+				fc.client.SetTokens(fc.configs.AccessToken,fc.configs.RefreshToken)
 				fc.appLifecycle.SetAuthState(model.AuthStateAuthenticated)
 				fc.appLifecycle.SetConnectionState(model.ConnStateConnected)
 			} else {

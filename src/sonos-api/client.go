@@ -162,6 +162,11 @@ func (clt *Client) SetHubAuthToken(token string) {
 	clt.oauth2Client.SetHubToken(token)
 }
 
+func (clt *Client) SetTokens(accessToken,refreshToken string) {
+	clt.accessToken = accessToken
+	clt.refreshToken = refreshToken
+}
+
 func (clt *Client) UpdateAuthParameters(mqttBrokerUri string) {
 	clt.oauth2Client.SetParameters(mqttBrokerUri, "", "", 0, 0, 0, 0)
 }

@@ -59,19 +59,35 @@ func main() {
 
 	appLifecycle.SetConnectionState(model.ConnStateDisconnected)
 
-	if configs.IsConfigured() && err == nil {
-		appLifecycle.SetConfigState(model.ConfigStateConfigured)
-		appLifecycle.SetConnectionState(model.ConnStateConnected)
-		appLifecycle.SetAppState(model.AppStateRunning, nil)
-	} else {
-		appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
-		appLifecycle.SetConnectionState(model.ConnStateDisconnected)
+	// Checking internet connection
+	systemCheck := edgeapp.NewSystemCheck()
+	err = systemCheck.WaitForInternet(time.Second*60)
+	if err !=nil {
+		log.Error("<main> Internet is not available, the adapter might not work.")
 	}
 
 	if configs.IsAuthenticated() && err == nil {
 		appLifecycle.SetAuthState(model.AuthStateAuthenticated)
+		for i:=0;i<5;i++ {
+			states.Households, err = client.GetHousehold()
+			if err == nil {
+				appLifecycle.SetConnectionState(model.ConnStateConnected)
+				break
+			}else {
+				log.Error("<main> Can't get household.Retrying.... Err:",err.Error())
+				time.Sleep(time.Second*10)
+				appLifecycle.SetConnectionState(model.ConnStateDisconnected)
+			}
+		}
 	} else {
 		appLifecycle.SetAuthState(model.AuthStateNotAuthenticated)
+	}
+
+	if configs.IsConfigured() && err == nil {
+		appLifecycle.SetConfigState(model.ConfigStateConfigured)
+		appLifecycle.SetAppState(model.AppStateRunning, nil)
+	} else {
+		appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
 	}
 
 	for {
