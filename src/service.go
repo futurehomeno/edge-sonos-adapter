@@ -35,10 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "can't load config file."))
 	}
-	//err = states.LoadFromFile()
-	//if err != nil {
-	//	log.Fatal(errors.Wrap(err, "can't load state file."))
-	//}
+
 	client := sonos.NewClient(configs.Env,configs.AccessToken,configs.RefreshToken)
 	client.UpdateAuthParameters(configs.MqttServerURI)
 	edgeapp.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
@@ -130,14 +127,19 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 		refreshMillis := configs.LastAuthMillis + 43200000
 
 		if currentMillis > refreshMillis {
+			log.Debug("<main> Access token expired , requesting new token")
 			newAccessToken, err := client.RefreshAccessToken(configs.RefreshToken)
 			if err != nil {
+				log.Error("<main> Can't refresh token")
 				log.Error(errors.Wrap(err, "refreshing access token"))
-			}
-			configs.AccessToken = newAccessToken
-			configs.LastAuthMillis = currentMillis
-			if err := configs.SaveToFile(); err != nil {
-				log.Error(err)
+				return
+			}else if newAccessToken != "" {
+				configs.AccessToken = newAccessToken
+				configs.LastAuthMillis = currentMillis
+				client.SetTokens(configs.AccessToken,configs.RefreshToken)
+				if err := configs.SaveToFile(); err != nil {
+					log.Error("<main> Can't save configurations . Err:",err)
+				}
 			}
 		}
 	}

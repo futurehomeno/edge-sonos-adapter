@@ -9,6 +9,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	fgutils "github.com/futurehomeno/fimpgo/utils"
 	"github.com/thingsplex/sonos/utils"
 )
 
@@ -59,6 +60,17 @@ func (cf *Configs) LoadFromFile() error {
 	if err != nil {
 		return err
 	}
+	if cf.Env == "" {
+		log.Info("Environment is not set. Configuring..")
+		hubInfo, err := fgutils.NewHubUtils().GetHubInfo()
+		if err == nil && hubInfo != nil {
+			cf.Env = hubInfo.Environment
+		} else {
+			cf.Env = fgutils.EnvProd
+		}
+		cf.SaveToFile()
+	}
+	log.Info("Env = ",cf.Env)
 	return nil
 }
 

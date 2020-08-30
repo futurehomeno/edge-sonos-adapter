@@ -9,7 +9,6 @@ import (
 	"github.com/thingsplex/sonos/sonos-api"
 
 	"github.com/futurehomeno/fimpgo"
-	"github.com/futurehomeno/fimpgo/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/thingsplex/sonos/model"
 )
@@ -439,11 +438,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			log.Info("New tokens set successfully")
 			if err := fc.configs.SaveToFile(); err != nil {
-				log.Error(err)
+				log.Error("<frouter> Can't save configurations . Err :",err)
 			}
-			//if err := fc.states.SaveToFile(); err != nil {
-			//	log.Error(err)
-			//}
+
 
 		case "cmd.auth.logout":
 			// exclude all players
@@ -502,13 +499,6 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err != nil {
 				log.Error("Failed to load manifest file .Error :", err.Error())
 				return
-			}
-			hubInfo, err := utils.NewHubUtils().GetHubInfo()
-
-			if err == nil && hubInfo != nil {
-				fc.configs.Env = hubInfo.Environment
-			} else {
-				fc.configs.Env = utils.EnvProd
 			}
 
 			if fc.configs.Env == "beta" {
