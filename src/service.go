@@ -36,7 +36,7 @@ func main() {
 		log.Fatal(errors.Wrap(err, "can't load config file."))
 	}
 
-	client := sonos.NewClient(configs.Env,configs.AccessToken,configs.RefreshToken)
+	client := sonos.NewClient(configs.Env, configs.AccessToken, configs.RefreshToken)
 	client.UpdateAuthParameters(configs.MqttServerURI)
 	edgeapp.SetupLog(configs.LogFile, configs.LogLevel, configs.LogFormat)
 	log.Info("--------------Starting sonos----------------")
@@ -51,28 +51,28 @@ func main() {
 	responder.RegisterResource(model.GetDiscoveryResource())
 	responder.Start()
 
-	fimpRouter := router.NewFromFimpRouter(mqtt, appLifecycle, configs, states,client)
+	fimpRouter := router.NewFromFimpRouter(mqtt, appLifecycle, configs, states, client)
 	fimpRouter.Start()
 
 	appLifecycle.SetConnectionState(model.ConnStateDisconnected)
 
 	// Checking internet connection
 	systemCheck := edgeapp.NewSystemCheck()
-	err = systemCheck.WaitForInternet(time.Second*60)
-	if err !=nil {
+	err = systemCheck.WaitForInternet(time.Second * 60)
+	if err != nil {
 		log.Error("<main> Internet is not available, the adapter might not work.")
 	}
 
 	if configs.IsAuthenticated() && err == nil {
 		appLifecycle.SetAuthState(model.AuthStateAuthenticated)
-		for i:=0;i<5;i++ {
+		for i := 0; i < 5; i++ {
 			states.Households, err = client.GetHousehold()
 			if err == nil {
 				appLifecycle.SetConnectionState(model.ConnStateConnected)
 				break
-			}else {
-				log.Error("<main> Can't get household.Retrying.... Err:",err.Error())
-				time.Sleep(time.Second*10)
+			} else {
+				log.Error("<main> Can't get household.Retrying.... Err:", err.Error())
+				time.Sleep(time.Second * 10)
 				appLifecycle.SetConnectionState(model.ConnStateDisconnected)
 			}
 		}
@@ -133,12 +133,12 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 				log.Error("<main> Can't refresh token")
 				log.Error(errors.Wrap(err, "refreshing access token"))
 				return
-			}else if newAccessToken != "" {
+			} else if newAccessToken != "" {
 				configs.AccessToken = newAccessToken
 				configs.LastAuthMillis = currentMillis
-				client.SetTokens(configs.AccessToken,configs.RefreshToken)
+				client.SetTokens(configs.AccessToken, configs.RefreshToken)
 				if err := configs.SaveToFile(); err != nil {
-					log.Error("<main> Can't save configurations . Err:",err)
+					log.Error("<main> Can't save configurations . Err:", err)
 				}
 			}
 		}
