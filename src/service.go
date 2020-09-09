@@ -141,12 +141,14 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 	}
 
 	for i, group := range states.Groups {
-		if len(oldGroups) != 0 {
+		if len(oldGroups) != 0 && len(oldGroups) == len(states.Groups) {
 			states.Groups[i].OldReport = oldGroups[i].OldReport
 			states.Groups[i].OldPbStateValue = oldGroups[i].OldPbStateValue
 			states.Groups[i].OldPlayModes = oldGroups[i].OldPlayModes
 			states.Groups[i].OldVolume = oldGroups[i].OldVolume
 			states.Groups[i].OldMuted = oldGroups[i].OldMuted
+		} else if len(oldGroups) != len(states.Groups) {
+			return states
 		}
 		group = states.Groups[i]
 
