@@ -3,19 +3,21 @@ package sonos
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
+
 type GroupsAndPlayersResponse struct {
 	Players []Player `json:"players"`
-	Groups  []Group `json:"groups"`
+	Groups  []Group  `json:"groups"`
 }
 
 func (clt *Client) GetGroupsAndPlayers(HouseholdID string) ([]Group, []Player, error) {
 	url := fmt.Sprintf("%s%s%s%s", controlURL, "/v1/households/", HouseholdID, "/groups")
 
-	body , err:= clt.doApiRequest(http.MethodGet,url,nil)
+	body, err := clt.doApiRequest(http.MethodGet, url, nil)
 	var resp GroupsAndPlayersResponse
 
 	err = json.Unmarshal(body, &resp)

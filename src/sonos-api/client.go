@@ -158,14 +158,14 @@ type (
 	}
 )
 
-func NewClient(env,accessToken,refreshToken string) *Client {
+func NewClient(env, accessToken, refreshToken string) *Client {
 	authClient := edgeapp.NewFhOAuth2Client(sonosPartnerCode, sonosPartnerCode, env)
 
 	return &Client{
 		refreshToken: refreshToken,
 		accessToken:  accessToken,
 		oauth2Client: authClient,
-		httpClient:   &http.Client{Timeout:30*time.Second}, // Very important to set timeout
+		httpClient:   &http.Client{Timeout: 30 * time.Second}, // Very important to set timeout
 	}
 }
 
@@ -173,7 +173,7 @@ func (clt *Client) SetHubAuthToken(token string) {
 	clt.oauth2Client.SetHubToken(token)
 }
 
-func (clt *Client) SetTokens(accessToken,refreshToken string) {
+func (clt *Client) SetTokens(accessToken, refreshToken string) {
 	clt.accessToken = accessToken
 	clt.refreshToken = refreshToken
 }
@@ -188,14 +188,14 @@ func (clt *Client) RefreshAccessToken(refreshToken string) (string, error) {
 	}
 	if refreshToken == "" {
 		log.Error("<client> Empty refresh token")
-		return "",fmt.Errorf("empty refresh token")
+		return "", fmt.Errorf("empty refresh token")
 	}
 	resp, err := clt.oauth2Client.ExchangeRefreshToken(refreshToken)
 	if err != nil {
 		log.Error("can't fetch new access token", err)
 		return "", err
 	}
-	log.Debug("<client> New access token : ",resp.AccessToken)
+	log.Debug("<client> New access token : ", resp.AccessToken)
 	clt.accessToken = resp.AccessToken
 	return resp.AccessToken, nil
 }
@@ -203,7 +203,7 @@ func (clt *Client) RefreshAccessToken(refreshToken string) (string, error) {
 func (clt *Client) GetHousehold() ([]Household, error) {
 	url := fmt.Sprintf("%s%s", controlURL, "/v1/households")
 
-	body,err := clt.doApiRequest(http.MethodGet,url,nil)
+	body, err := clt.doApiRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -223,22 +223,22 @@ func (clt *Client) GetHousehold() ([]Household, error) {
 func (clt *Client) doHttpRequest(req *http.Request) ([]byte, error) {
 	var err error
 	var resp *http.Response
-	for i:=0;i<3;i++ {
+	for i := 0; i < 3; i++ {
 		resp, err = clt.httpClient.Do(req)
 		if err != nil {
 			return nil, err
 		}
 		if resp.StatusCode == 200 {
 			break
-		}else if resp.StatusCode == 401 {
+		} else if resp.StatusCode == 401 {
 			log.Info("Invalid token . Retrying")
-			_,err= clt.RefreshAccessToken(clt.refreshToken)
+			_, err = clt.RefreshAccessToken(clt.refreshToken)
 			if err != nil {
-				time.Sleep(time.Second*5)
-			}else {
+				time.Sleep(time.Second * 5)
+			} else {
 				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", clt.accessToken))
 			}
-		}else if resp.StatusCode != 200 {
+		} else if resp.StatusCode != 200 {
 			log.Error("Bad HTTP return code ", resp.StatusCode)
 			return nil, err
 		}
@@ -251,13 +251,13 @@ func (clt *Client) doHttpRequest(req *http.Request) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (clt *Client) doApiRequest(method,url string ,jsonRequest interface{})([]byte, error) {
+func (clt *Client) doApiRequest(method, url string, jsonRequest interface{}) ([]byte, error) {
 	var requestBody io.Reader
 	var err error
 	if jsonRequest != nil {
 		bytesRepresentation, err := json.Marshal(jsonRequest)
 		if err != nil {
-			log.Error("<client> Request marshalling error. Err:",err.Error())
+			log.Error("<client> Request marshalling error. Err:", err.Error())
 			return nil, err
 		}
 		requestBody = bytes.NewBuffer(bytesRepresentation)
@@ -267,7 +267,7 @@ func (clt *Client) doApiRequest(method,url string ,jsonRequest interface{})([]by
 		log.Error(errors.Wrap(err, "getting metadata"))
 		return nil, err
 	}
-	req.Header.Set("Content-Type","application/json")
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Add("Accept", "*/*")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", clt.accessToken))
 	return clt.doHttpRequest(req)

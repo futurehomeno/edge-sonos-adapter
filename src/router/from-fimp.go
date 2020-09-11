@@ -23,8 +23,8 @@ type FromFimpRouter struct {
 	client       *sonos.Client
 }
 
-func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs, states *model.States,client *sonos.Client) *FromFimpRouter {
-	fc := FromFimpRouter{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: mqt, appLifecycle: appLifecycle, configs: configs, states: states,client:client}
+func NewFromFimpRouter(mqt *fimpgo.MqttTransport, appLifecycle *model.Lifecycle, configs *model.Configs, states *model.States, client *sonos.Client) *FromFimpRouter {
+	fc := FromFimpRouter{inboundMsgCh: make(fimpgo.MessageCh, 5), mqt: mqt, appLifecycle: appLifecycle, configs: configs, states: states, client: client}
 	fc.mqt.RegisterChannel("ch1", fc.inboundMsgCh)
 	return &fc
 }
@@ -49,7 +49,7 @@ func (fc *FromFimpRouter) Start() {
 }
 
 func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
-	log.Debug("New fimp msg . cmd = ",newMsg.Payload.Type)
+	log.Debug("New fimp msg . cmd = ", newMsg.Payload.Type)
 	addr := strings.Replace(newMsg.Addr.ServiceAddress, "_0", "", 1)
 	ns := model.NetworkService{}
 	switch newMsg.Payload.Service {
@@ -84,7 +84,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			val = fc.client.SetCorrectValue(pbStatus.PlaybackState)
 			if success {
 				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
-				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, val, nil, nil, newMsg.Payload)
+				msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeString, val, nil, nil, newMsg.Payload)
 				if err := fc.mqt.Publish(adr, msg); err != nil {
 					log.Error(err)
 				}
@@ -310,7 +310,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 					report := map[string]interface{}{
 						"album":       fc.states.CurrentItem.Track.Album.Name,
 						"track":       fc.states.CurrentItem.Track.Name,
-						"artist":      fc.states.CurrentItem.Track.Artist,
+						"artist":      fc.states.CurrentItem.Track.Artist.Name,
 						"image_url":   imageURL,
 						"stream_info": fc.states.StreamInfo,
 					}
@@ -385,15 +385,14 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			var req sonos.AudioClipRequest
 			err := newMsg.Payload.GetObjectValue(&req)
 			if err != nil {
-				log.Error("<fimpr> Incompatible request message .Err:",err.Error())
+				log.Error("<fimpr> Incompatible request message .Err:", err.Error())
 			}
-			for i := range fc.states.Players{
-				_,err = fc.client.AudioClipLoad(req.StreamURL,req.Volume,fc.states.Players[i].Id)
+			for i := range fc.states.Players {
+				_, err = fc.client.AudioClipLoad(req.StreamURL, req.Volume, fc.states.Players[i].Id)
 				if err != nil {
-					log.Error("<fimpr> Audio clip can't be played .Err:",err.Error())
+					log.Error("<fimpr> Audio clip can't be played .Err:", err.Error())
 				}
 			}
-
 
 		}
 
@@ -418,7 +417,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				fc.configs.LastAuthMillis = time.Now().UnixNano() / 1000000
 				fc.configs.RefreshToken = authReq.RefreshToken
 				fc.configs.ExpiresIn = authReq.ExpiresIn
-				fc.client.SetTokens(fc.configs.AccessToken,fc.configs.RefreshToken)
+				fc.client.SetTokens(fc.configs.AccessToken, fc.configs.RefreshToken)
 				fc.appLifecycle.SetAuthState(model.AuthStateAuthenticated)
 				fc.appLifecycle.SetConnectionState(model.ConnStateConnected)
 			} else {
@@ -438,9 +437,8 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			log.Info("New tokens set successfully")
 			if err := fc.configs.SaveToFile(); err != nil {
-				log.Error("<frouter> Can't save configurations . Err :",err)
+				log.Error("<frouter> Can't save configurations . Err :", err)
 			}
-
 
 		case "cmd.auth.logout":
 			// exclude all players
@@ -595,9 +593,9 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				fc.states.Groups, fc.states.Players, err = fc.client.GetGroupsAndPlayers(HouseholdID)
 
 				if err != nil {
-					log.Error("<fimpr> Can't get groups and player . Err:",err.Error())
+					log.Error("<fimpr> Can't get groups and player . Err:", err.Error())
 					//TODO : Report error here
-				}else {
+				} else {
 
 					for i := 0; i < len(fc.states.Players); i++ {
 						inclReport := ns.MakeInclusionReport(fc.states.Players[i])
@@ -608,7 +606,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 							log.Error(err)
 						}
 					}
-					fc.appLifecycle.SetAppState(model.AppStateRunning,nil)
+					fc.appLifecycle.SetAppState(model.AppStateRunning, nil)
 					fc.appLifecycle.SetConfigState(model.ConfigStateConfigured)
 				}
 			}
