@@ -164,12 +164,18 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 				} else {
 					states.StreamInfo = ""
 				}
-				imageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
 				states.CurrentItem = sonos.CurrentItem{}
+				if metadata.Container.Name != "" {
+					states.CurrentItem.Track.Artist.Name = metadata.Container.Name
+				}
+
+				imageURL = ""
 				states.NextItem = sonos.NextItem{}
+				states.IsRadio = true
 			} else {
 				states.StreamInfo = ""
 				imageURL = states.CurrentItem.Track.ImageURL
+				states.IsRadio = false
 				if imageURL == "" {
 					imageURL = states.Container.ImageURL
 				}
@@ -183,9 +189,10 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 			report := map[string]interface{}{
 				"album":       states.CurrentItem.Track.Album.Name,
 				"track":       states.CurrentItem.Track.Name,
-				"artist":      states.CurrentItem.Track.Artist,
+				"artist":      states.CurrentItem.Track.Artist.Name,
 				"image_url":   imageURL,
 				"stream_info": states.StreamInfo,
+				"is_radio":    states.IsRadio,
 			}
 
 			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: group.FimpId}

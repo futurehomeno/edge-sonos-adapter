@@ -26,6 +26,7 @@ type States struct {
 	CurrentItem sonos.CurrentItem `json:"currentItem"`
 	NextItem    sonos.NextItem    `json:"nextItem"`
 	StreamInfo  string            `json:"streamInfo"`
+	IsRadio     bool              `json:"is_radio"`
 
 	PlaybackState string `json:"playbackState"`
 
