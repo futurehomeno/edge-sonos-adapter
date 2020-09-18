@@ -63,6 +63,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if err != nil {
 				log.Error("Ctrl error")
 			}
+			prevNext := val
 
 			// find groupId from addr(playerId)
 			CorrID, err := fc.client.FindGroupFromPlayer(addr, fc.states.Groups)
@@ -80,6 +81,8 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			if pbStatus.PlaybackState == "PLAYBACK_STATE_BUFFERING" {
 				pbStatus.PlaybackState = "PLAYBACK_STATE_PLAYING"
+			} else if pbStatus.PlaybackState == "PLAYBACK_STATE_IDLE" {
+				pbStatus.PlaybackState = "PLAYBACK_STATE_PAUSED"
 			}
 			val = fc.client.SetCorrectValue(pbStatus.PlaybackState)
 			if success {
@@ -90,6 +93,52 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				}
 			}
 			log.Info("New playback.set, ", val)
+			if prevNext == "next_track" || prevNext == "previous_track" {
+				metadata, err := fc.client.GetMetadata(CorrID)
+				if err == nil {
+					var imageURL string
+					fc.states.Container = metadata.Container
+					fc.states.CurrentItem = metadata.CurrentItem
+					fc.states.NextItem = metadata.NextItem
+					if fc.states.Container.Service.Name == "Sonos Radio" {
+						if metadata.StreamInfo != "" {
+							fc.states.StreamInfo = metadata.StreamInfo
+						} else {
+							fc.states.StreamInfo = ""
+						}
+						fc.states.CurrentItem = sonos.CurrentItem{}
+						if metadata.Container.Name != "" {
+							fc.states.CurrentItem.Track.Artist.Name = metadata.Container.Name
+						}
+
+						imageURL = ""
+						fc.states.NextItem = sonos.NextItem{}
+						fc.states.IsRadio = true
+					} else {
+						fc.states.StreamInfo = ""
+						imageURL = fc.states.CurrentItem.Track.ImageURL
+						fc.states.IsRadio = false
+						if imageURL == "" {
+							imageURL = fc.states.Container.ImageURL
+						}
+					}
+
+					report := map[string]interface{}{
+						"album":       fc.states.CurrentItem.Track.Album.Name,
+						"track":       fc.states.CurrentItem.Track.Name,
+						"artist":      fc.states.CurrentItem.Track.Artist.Name,
+						"image_url":   imageURL,
+						"stream_info": fc.states.StreamInfo,
+					}
+					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
+
+					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
+					if err := fc.mqt.Publish(adr, msg); err != nil {
+						log.Error(err)
+					}
+					log.Info("New metadata message sent to fimp")
+				}
+			}
 
 		case "cmd.playback.get_report":
 			// find groupId from addr(playerId)
@@ -106,6 +155,8 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			}
 			if pbStatus.PlaybackState == "PLAYBACK_STATE_BUFFERING" {
 				pbStatus.PlaybackState = "PLAYBACK_STATE_PLAYING"
+			} else if pbStatus.PlaybackState == "PLAYBACK_STATE_IDLE" {
+				pbStatus.PlaybackState = "PLAYBACK_STATE_PAUSED"
 			}
 			val := fc.client.SetCorrectValue(pbStatus.PlaybackState)
 			if pbStatus != nil {
@@ -292,19 +343,31 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if success {
 				metadata, err := fc.client.GetMetadata(CorrID)
 				if err == nil {
+					var imageURL string
 					fc.states.Container = metadata.Container
 					fc.states.CurrentItem = metadata.CurrentItem
 					fc.states.NextItem = metadata.NextItem
 					if fc.states.Container.Service.Name == "Sonos Radio" {
-						fc.states.StreamInfo = metadata.StreamInfo
-						fc.states.Container.ImageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
+						if metadata.StreamInfo != "" {
+							fc.states.StreamInfo = metadata.StreamInfo
+						} else {
+							fc.states.StreamInfo = ""
+						}
+						fc.states.CurrentItem = sonos.CurrentItem{}
+						if metadata.Container.Name != "" {
+							fc.states.CurrentItem.Track.Artist.Name = metadata.Container.Name
+						}
+
+						imageURL = ""
+						fc.states.NextItem = sonos.NextItem{}
+						fc.states.IsRadio = true
 					} else {
 						fc.states.StreamInfo = ""
-					}
-
-					imageURL := fc.states.Container.ImageURL
-					if imageURL == "" {
 						imageURL = fc.states.CurrentItem.Track.ImageURL
+						fc.states.IsRadio = false
+						if imageURL == "" {
+							imageURL = fc.states.Container.ImageURL
+						}
 					}
 
 					report := map[string]interface{}{
@@ -350,25 +413,37 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			if success {
 				metadata, err := fc.client.GetMetadata(CorrID)
 				if err == nil {
+					var imageURL string
 					fc.states.Container = metadata.Container
 					fc.states.CurrentItem = metadata.CurrentItem
 					fc.states.NextItem = metadata.NextItem
 					if fc.states.Container.Service.Name == "Sonos Radio" {
-						fc.states.StreamInfo = metadata.StreamInfo
-						fc.states.Container.ImageURL = "https://static.vecteezy.com/system/resources/previews/000/581/923/non_2x/radio-icon-vector-illustration.jpg"
+						if metadata.StreamInfo != "" {
+							fc.states.StreamInfo = metadata.StreamInfo
+						} else {
+							fc.states.StreamInfo = ""
+						}
+						fc.states.CurrentItem = sonos.CurrentItem{}
+						if metadata.Container.Name != "" {
+							fc.states.CurrentItem.Track.Artist.Name = metadata.Container.Name
+						}
+
+						imageURL = ""
+						fc.states.NextItem = sonos.NextItem{}
+						fc.states.IsRadio = true
 					} else {
 						fc.states.StreamInfo = ""
-					}
-
-					imageURL := fc.states.Container.ImageURL
-					if imageURL == "" {
 						imageURL = fc.states.CurrentItem.Track.ImageURL
+						fc.states.IsRadio = false
+						if imageURL == "" {
+							imageURL = fc.states.Container.ImageURL
+						}
 					}
 
 					report := map[string]interface{}{
 						"album":       fc.states.CurrentItem.Track.Album.Name,
 						"track":       fc.states.CurrentItem.Track.Name,
-						"artist":      fc.states.CurrentItem.Track.Artist,
+						"artist":      fc.states.CurrentItem.Track.Artist.Name,
 						"image_url":   imageURL,
 						"stream_info": fc.states.StreamInfo,
 					}

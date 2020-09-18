@@ -279,6 +279,10 @@ func (clt *Client) SetCorrectValue(val string) string {
 		return "play"
 	} else if val == "PLAYBACK_STATE_PAUSED" {
 		return "pause"
+	} else if val == "PLAYBACK_STATE_IDLE" {
+		return "pause"
+	} else if val == "PLAYBACK_STATE_BUFFERING" {
+		return "play"
 	}
 	return "unknown"
 }
