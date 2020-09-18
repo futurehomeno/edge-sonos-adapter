@@ -32,7 +32,7 @@ func (ns *NetworkService) MakeInclusionReport(Player sonos.Player) fimptype.Thin
 	}, {
 		Type:      "out",
 		MsgType:   "evt.playback.report",
-		ValueType: "str_map",
+		ValueType: "string",
 		Version:   "1",
 	}, {
 		Type:      "in",
@@ -99,7 +99,7 @@ func (ns *NetworkService) MakeInclusionReport(Player sonos.Player) fimptype.Thin
 		MsgType:   "cmd.favorites.get_report",
 		ValueType: "null",
 		Version:   "1",
-	},{
+	}, {
 		Type:      "out",
 		MsgType:   "evt.favorites.report",
 		ValueType: "object",
@@ -114,7 +114,7 @@ func (ns *NetworkService) MakeInclusionReport(Player sonos.Player) fimptype.Thin
 		MsgType:   "cmd.playlists.get_report",
 		ValueType: "null",
 		Version:   "1",
-	},{
+	}, {
 		Type:      "out",
 		MsgType:   "evt.playlists.report",
 		ValueType: "object",
