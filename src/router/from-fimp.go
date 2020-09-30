@@ -680,6 +680,27 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 						if err := fc.mqt.Publish(&adr, msg); err != nil {
 							log.Error(err)
 						}
+						CorrID, err := fc.client.FindGroupFromPlayer(inclReport.DeviceId, fc.states.Groups)
+						if err != nil {
+							log.Error(err)
+						}
+						pbStatus, err := fc.client.PlaybackGetStatus(CorrID)
+						if err != nil {
+							log.Error(err)
+						}
+						if pbStatus.PlaybackState == "PLAYBACK_STATE_BUFFERING" {
+							pbStatus.PlaybackState = "PLAYBACK_STATE_PLAYING"
+						} else if pbStatus.PlaybackState == "PLAYBACK_STATE_IDLE" {
+							pbStatus.PlaybackState = "PLAYBACK_STATE_PAUSED"
+						}
+						val := fc.client.SetCorrectValue(pbStatus.PlaybackState)
+						if pbStatus != nil {
+							adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
+							msg := fimpgo.NewMessage("evt.playback.report", "media_player", fimpgo.VTypeStrMap, val, nil, nil, newMsg.Payload)
+							if err := fc.mqt.Publish(adr, msg); err != nil {
+								log.Error(err)
+							}
+						}
 					}
 					fc.appLifecycle.SetAppState(model.AppStateRunning, nil)
 					fc.appLifecycle.SetConfigState(model.ConfigStateConfigured)
@@ -773,6 +794,13 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 			deviceId, ok := val["address"]
 			if ok {
 				// TODO: This is an example . Add your logic here or remove
+				val := map[string]interface{}{
+					"address": deviceId,
+				}
+				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
+				msg := fimpgo.NewMessage("evt.thing.exclusion_report", "sonos", fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
+				fc.mqt.Publish(adr, msg)
+				log.Info("Device with deviceID: ", deviceId, " has been removed from network.")
 				log.Info(deviceId)
 			} else {
 				log.Error("Incorrect address")
