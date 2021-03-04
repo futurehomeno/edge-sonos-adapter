@@ -5,4 +5,5 @@ if [ -d /run/systemd/system ] && [ "$1" = remove ]; then
   deb-systemd-invoke stop sonos.service >/dev/null
   systemctl disable sonos.service || true
   rm /var/log/thingsplex/sonos/* || true
+  rm /opt/thingsplex/sonos/data/* || true
 fi
