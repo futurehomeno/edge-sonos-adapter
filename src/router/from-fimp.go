@@ -806,6 +806,18 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				log.Error("Incorrect address")
 
 			}
+		case "cmd.app.uninstall":
+			for i := 0; i < len(fc.states.Players); i++ {
+				playerID := fc.states.Players[i].FimpId
+				val := map[string]interface{}{
+					"address": playerID,
+				}
+				adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeAdapter, ResourceName: "sonos", ResourceAddress: "1"}
+				msg := fimpgo.NewMessage("evt.thing.exclusion_report", "sonos", fimpgo.VTypeObject, val, nil, nil, newMsg.Payload)
+				if err := fc.mqt.Publish(adr, msg); err != nil {
+					log.Error(err)
+				}
+			}
 		}
 
 		//if err := fc.states.SaveToFile(); err != nil {
