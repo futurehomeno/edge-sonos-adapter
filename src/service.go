@@ -198,7 +198,7 @@ func LoadStates(configs *model.Configs, client *sonos.Client, states *model.Stat
 			adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: group.FimpId}
 			oldReportEqualsNewReport := reflect.DeepEqual(group.OldReport, report)
 			if !oldReportEqualsNewReport {
-				msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
+				msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeObject, report, nil, nil, nil)
 				if err := mqtt.Publish(adr, msg); err != nil {
 					log.Error(err)
 				}

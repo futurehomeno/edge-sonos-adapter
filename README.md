@@ -24,7 +24,7 @@ in          | cmd.mute.get_report               | null              |
 out         | evt.mute.report                   | bool              |
 -|||
 in          | cmd.metadata.get_report           | null              | 
-out         | evt.metadata.report               | str_map           | {"album": "", "track": "", "artist": "", "image_url": "", "is_radio": false}
+out         | evt.metadata.report               | object            | {"album": "", "track": "", "artist": "", "image_url": "", "is_radio": false}
 -|||
 in          | cmd.favorites.get_report          | null              | 
 out         | evt.favorites.report              | object            | [{"id": "", "name": "", "description": ""}, {"id": "", ..}]

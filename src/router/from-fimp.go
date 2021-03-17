@@ -129,10 +129,11 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 						"artist":      fc.states.CurrentItem.Track.Artist.Name,
 						"image_url":   imageURL,
 						"stream_info": fc.states.StreamInfo,
+						"is_radio":    fc.states.IsRadio,
 					}
 					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 
-					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
+					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeObject, report, nil, nil, nil)
 					if err := fc.mqt.Publish(adr, msg); err != nil {
 						log.Error(err)
 					}
@@ -376,10 +377,11 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 						"artist":      fc.states.CurrentItem.Track.Artist.Name,
 						"image_url":   imageURL,
 						"stream_info": fc.states.StreamInfo,
+						"is_radio":    fc.states.IsRadio,
 					}
 					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 
-					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
+					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeObject, report, nil, nil, nil)
 					if err := fc.mqt.Publish(adr, msg); err != nil {
 						log.Error(err)
 					}
@@ -446,10 +448,11 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 						"artist":      fc.states.CurrentItem.Track.Artist.Name,
 						"image_url":   imageURL,
 						"stream_info": fc.states.StreamInfo,
+						"is_radio":    fc.states.IsRadio,
 					}
 					adr := &fimpgo.Address{MsgType: fimpgo.MsgTypeEvt, ResourceType: fimpgo.ResourceTypeDevice, ResourceName: model.ServiceName, ResourceAddress: "1", ServiceName: "media_player", ServiceAddress: addr}
 
-					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeStrMap, report, nil, nil, nil)
+					msg := fimpgo.NewMessage("evt.metadata.report", "media_player", fimpgo.VTypeObject, report, nil, nil, nil)
 					if err := fc.mqt.Publish(adr, msg); err != nil {
 						log.Error(err)
 					}

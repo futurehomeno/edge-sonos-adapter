@@ -87,7 +87,7 @@ func (ns *NetworkService) MakeInclusionReport(Player sonos.Player) fimptype.Thin
 	}, {
 		Type:      "out",
 		MsgType:   "evt.metadata.report",
-		ValueType: "str_map",
+		ValueType: "object",
 		Version:   "1",
 	}, {
 		Type:      "in",
