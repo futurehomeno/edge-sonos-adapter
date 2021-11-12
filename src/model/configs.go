@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/futurehomeno/edge-sonos-adapter/utils"
 	fgutils "github.com/futurehomeno/fimpgo/utils"
-	"github.com/thingsplex/sonos/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 const ServiceName = "sonos"
@@ -70,7 +70,7 @@ func (cf *Configs) LoadFromFile() error {
 		}
 		cf.SaveToFile()
 	}
-	log.Info("Env = ",cf.Env)
+	log.Info("Env = ", cf.Env)
 	return nil
 }
 
@@ -109,7 +109,7 @@ func (cf *Configs) IsAuthenticated() bool {
 }
 
 func (cf *Configs) IsConfigured() bool {
-	if cf.IsAuthenticated() && len(cf.WantedHouseholds)>0 {
+	if cf.IsAuthenticated() && len(cf.WantedHouseholds) > 0 {
 		return true
 	}
 	return false

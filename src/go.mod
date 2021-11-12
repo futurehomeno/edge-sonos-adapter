@@ -1,4 +1,4 @@
-module github.com/thingsplex/sonos
+module github.com/futurehomeno/edge-sonos-adapter
 
 require (
 	github.com/futurehomeno/fimpgo v1.6.2-0.20200823080729-44145c67af35

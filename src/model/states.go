@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/thingsplex/sonos/sonos-api"
+	"github.com/futurehomeno/edge-sonos-adapter/sonos-api"
 
+	"github.com/futurehomeno/edge-sonos-adapter/utils"
 	log "github.com/sirupsen/logrus"
-	"github.com/thingsplex/sonos/utils"
 )
 
 type States struct {
