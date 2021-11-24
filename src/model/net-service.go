@@ -3,8 +3,8 @@ package model
 import (
 	"fmt"
 
+	"github.com/futurehomeno/edge-sonos-adapter/sonos-api"
 	"github.com/futurehomeno/fimpgo/fimptype"
-	"github.com/thingsplex/sonos/sonos-api"
 )
 
 // NetworkService is for export

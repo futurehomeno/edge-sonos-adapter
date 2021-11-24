@@ -1,6 +1,5 @@
 ## Futurehome Sonos adapter
-The adapter works with Futurehome, but is currentlyt not supported in the app. For now you can use Thingsplex to make flows and control your Sonos devices. 
-Click [here](https://github.com/thingsplex/sonos-ad/blob/master/sonos_flow_example.json) to see example of a Sonos flow. 
+Click [here](https://github.com/futurehomeno/edge-sonos-adapter/blob/master/sonos_flow_example.json) to see example of a Sonos flow. 
 
 ### Service name
 `media_player`

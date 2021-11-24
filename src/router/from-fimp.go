@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thingsplex/sonos/sonos-api"
+	"github.com/futurehomeno/edge-sonos-adapter/sonos-api"
 
+	"github.com/futurehomeno/edge-sonos-adapter/model"
 	"github.com/futurehomeno/fimpgo"
 	log "github.com/sirupsen/logrus"
-	"github.com/thingsplex/sonos/model"
 )
 
 type FromFimpRouter struct {

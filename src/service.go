@@ -9,13 +9,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
 
+	"github.com/futurehomeno/edge-sonos-adapter/model"
+	"github.com/futurehomeno/edge-sonos-adapter/router"
+	"github.com/futurehomeno/edge-sonos-adapter/sonos-api"
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/discovery"
 	"github.com/futurehomeno/fimpgo/edgeapp"
 	log "github.com/sirupsen/logrus"
-	"github.com/thingsplex/sonos/model"
-	"github.com/thingsplex/sonos/router"
-	"github.com/thingsplex/sonos/sonos-api"
 )
 
 func main() {
