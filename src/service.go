@@ -18,6 +18,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const defaultTickerInterval = 300
+
 func main() {
 	var workDir string
 	flag.StringVar(&workDir, "c", "", "Work dir")
@@ -90,7 +92,7 @@ func main() {
 	// Set tickerInterval variable to configured value. If this value has never been configured it will be 0, set to default 300.
 	router.TickerInterval = configs.PollRate
 	if router.TickerInterval == 0 {
-		router.TickerInterval = 300
+		router.TickerInterval = defaultTickerInterval
 	}
 
 	initialTickerInterval := router.TickerInterval
