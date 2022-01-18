@@ -10,7 +10,7 @@ import (
 	"github.com/thoas/go-funk"
 
 	"github.com/futurehomeno/edge-sonos-adapter/model"
-	router "github.com/futurehomeno/edge-sonos-adapter/router"
+	"github.com/futurehomeno/edge-sonos-adapter/router"
 	"github.com/futurehomeno/edge-sonos-adapter/sonos-api"
 	"github.com/futurehomeno/fimpgo"
 	"github.com/futurehomeno/fimpgo/discovery"
