@@ -13,6 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var TickerInterval int64
+
 type FromFimpRouter struct {
 	inboundMsgCh fimpgo.MessageCh
 	mqt          *fimpgo.MqttTransport
@@ -809,6 +811,20 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 				log.Error("Incorrect address")
 
 			}
+
+		case "cmd.pollrate.set":
+			// get new pollrate value
+			val, err := newMsg.Payload.GetIntValue()
+			if err != nil {
+				log.Error("Wrong msg format")
+				return
+			}
+
+			TickerInterval = val
+			fc.configs.PollRate = TickerInterval
+			log.Debug("Updated ticker interval, new value: ", TickerInterval)
+			fc.configs.SaveToFile()
+
 		case "cmd.app.uninstall":
 			for i := 0; i < len(fc.states.Players); i++ {
 				playerID := fc.states.Players[i].FimpId
