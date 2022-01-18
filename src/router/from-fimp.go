@@ -822,7 +822,7 @@ func (fc *FromFimpRouter) routeFimpMessage(newMsg *fimpgo.Message) {
 
 			TickerInterval = val
 			fc.configs.PollRate = TickerInterval
-			log.Debug("Updated ticker interval, new value: ", TickerInterval)
+			log.Info("Updated ticker interval, new value: ", TickerInterval)
 			fc.configs.SaveToFile()
 
 		case "cmd.app.uninstall":
