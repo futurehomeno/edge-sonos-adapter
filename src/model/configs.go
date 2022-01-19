@@ -34,6 +34,7 @@ type Configs struct {
 	WantedHouseholds   []interface{} `json:"households"`
 	LastAuthMillis     int64
 	Env                string
+	PollRate           int64 `json:"poll_rate"`
 }
 
 func NewConfigs(workDir string) *Configs {

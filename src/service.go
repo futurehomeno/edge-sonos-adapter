@@ -18,6 +18,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const defaultTickerInterval = 300
+
 func main() {
 	var workDir string
 	flag.StringVar(&workDir, "c", "", "Work dir")
@@ -87,12 +89,28 @@ func main() {
 		appLifecycle.SetConfigState(model.ConfigStateNotConfigured)
 	}
 
+	// Set tickerInterval variable to configured value. If this value has never been configured it will be 0, set to default 300.
+	router.TickerInterval = configs.PollRate
+	if router.TickerInterval == 0 {
+		router.TickerInterval = defaultTickerInterval
+	}
+
+	initialTickerInterval := router.TickerInterval
+
 	for {
 		appLifecycle.WaitForState("main", model.AppStateRunning)
 		log.Info("<main>Starting update loop")
 		LoadStates(configs, client, states, err, mqtt)
-		ticker := time.NewTicker(time.Duration(15) * time.Second)
+		ticker := time.NewTicker(time.Duration(router.TickerInterval) * time.Second)
+
 		for range ticker.C {
+			if initialTickerInterval != router.TickerInterval {
+				log.Debug("New ticker interval value. Restarting ticker.")
+				initialTickerInterval = router.TickerInterval
+
+				break // restart ticker
+			}
+
 			if appLifecycle.AppState() != model.AppStateRunning {
 				break
 			}
